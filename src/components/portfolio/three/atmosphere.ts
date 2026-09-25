@@ -246,6 +246,80 @@ export function createBirdFlock(count: number, random: Random) {
 }
 
 /**
+ * Low-poly deer for the valley. The neck is on a pivot so it can graze — dip
+ * to the grass, lift to look around — on its own slow cycle.
+ */
+export function createDeer(color: string, buck = false) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color });
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.5, 0.44), mat);
+  body.position.y = 0.82;
+  group.add(body);
+
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), mat);
+  chest.position.set(0.45, 0.86, 0);
+  chest.scale.set(1, 0.95, 0.8);
+  group.add(chest);
+
+  const rump = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), mat);
+  rump.position.set(-0.45, 0.88, 0);
+  rump.scale.set(0.9, 1, 0.8);
+  group.add(rump);
+
+  for (const [x, z] of [
+    [0.38, 0.14],
+    [0.38, -0.14],
+    [-0.38, 0.14],
+    [-0.38, -0.14],
+  ]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.62, 0.09), mat);
+    leg.position.set(x, 0.31, z);
+    group.add(leg);
+  }
+
+  // Neck and head on a pivot; rotation.z lifts the head, negative grazes.
+  const neck = new THREE.Group();
+  neck.position.set(0.5, 1.02, 0);
+  const neckMesh = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.52, 0.16), mat);
+  neckMesh.position.set(0.08, 0.2, 0);
+  neckMesh.rotation.z = -0.5;
+  neck.add(neckMesh);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.16), mat);
+  head.position.set(0.3, 0.46, 0);
+  neck.add(head);
+  const earGeometry = new THREE.ConeGeometry(0.05, 0.16, 6);
+  for (const z of [0.07, -0.07]) {
+    const ear = new THREE.Mesh(earGeometry, mat);
+    ear.position.set(0.18, 0.58, z);
+    ear.rotation.z = -0.6;
+    neck.add(ear);
+  }
+  if (buck) {
+    for (const z of [0.07, -0.07]) {
+      const antler = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.045, 0.045), mat);
+      antler.position.set(0.16, 0.68, z);
+      antler.rotation.z = 0.7;
+      antler.rotation.y = z > 0 ? 0.4 : -0.4;
+      neck.add(antler);
+    }
+  }
+  group.add(neck);
+
+  const tail = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), mat);
+  tail.position.set(-0.58, 0.94, 0);
+  group.add(tail);
+
+  return {
+    group,
+    update(time: number, phase: number) {
+      neck.rotation.z = -0.35 + Math.sin(time * 0.35 + phase) * 0.55;
+      group.rotation.y += Math.sin(time * 0.1 + phase) * 0.0004;
+    },
+  };
+}
+
+/**
  * Smooth rolling hills as a single shaped silhouette wall.
  *
  * Stacked cones read as spikes; a wall whose top edge is a sum of slow sine
