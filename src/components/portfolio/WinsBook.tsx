@@ -3,9 +3,9 @@ import { Reveal } from "@/components/portfolio/Reveal";
 import { profile, wins, type Win } from "@/data/profile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 const TIERS = ["Gold", "Silver", "Bronze"] as const;
 const TIER_COLORS: Record<Win["tier"], string> = {
@@ -14,10 +14,9 @@ const TIER_COLORS: Record<Win["tier"], string> = {
   Bronze: "#b5714a",
 };
 
-type Page = { type: "cover" } | { type: "win"; win: Win };
-type Turn = { from: number; to: number; dir: "next" | "prev" };
+type BookPage = { type: "cover" } | { type: "win"; win: Win };
 
-/** Shared page shell so both stacked pages and flipping faces look identical. */
+/** Shared page shell so the two halves of the spread look identical. */
 function Page({
   children,
   side,
@@ -104,8 +103,7 @@ function CoverRight() {
           The wins
         </h3>
         <p className="mt-4 max-w-sm body-copy">
-          Hackathons, contests and stages from 2025 onward. Turn the pages —
-          one event per spread.
+          Hackathons, contests and stages from 2025 onward. One event per spread.
         </p>
       </div>
       <div className="flex items-end justify-between gap-6 border-t border-[#e6c9ae] pt-5">
@@ -116,9 +114,7 @@ function CoverRight() {
           <p className="mt-1 meta">Events recorded</p>
         </div>
         <div className="text-right">
-          <p className="font-display text-3xl tracking-[-0.02em] text-[#33202c]">
-            05
-          </p>
+          <p className="font-display text-3xl tracking-[-0.02em] text-[#33202c]">05</p>
           <p className="mt-1 meta">Gold &amp; silver</p>
         </div>
       </div>
@@ -169,46 +165,33 @@ function WinRight({ win, pageNumber }: { win: Win; pageNumber: number }) {
 /**
  * Section 04 — The wins book.
  *
- * A real page turn: a sheet sits on one half of the spread and rotates about
- * the spine, carrying the page being turned on its front and the page being
- * revealed on its back, exactly like paper. On phones the same spread
- * cross-fades instead, since a 3D flip under a thumb reads as a glitch.
+ * Click the page to move through the book: the left half goes back, the right
+ * half goes forward, and the spread slides across quickly as it swaps. The
+ * arrows, the dot rail and the left/right keys all do the same thing.
  */
 export function WinsBook() {
-  const pages = useMemo<Page[]>(
+  const pages = useMemo<BookPage[]>(
     () => [{ type: "cover" }, ...wins.map((win) => ({ type: "win" as const, win }))],
     [],
   );
   const isMobile = useIsMobile();
+  const reducedMotion = useReducedMotion();
   const [index, setIndex] = useState(0);
-  const [turn, setTurn] = useState<Turn | null>(null);
-  const locked = useRef(false);
+  const [direction, setDirection] = useState(1);
 
   const pageCount = pages.length;
 
   const go = useCallback(
     (target: number) => {
       const clamped = Math.min(Math.max(target, 0), pageCount - 1);
-      if (locked.current || clamped === index) return;
-      if (isMobile || Math.abs(clamped - index) > 1) {
-        setIndex(clamped);
-        return;
-      }
-      locked.current = true;
-      setTurn({ from: index, to: clamped, dir: clamped > index ? "next" : "prev" });
+      if (clamped === index) return;
+      setDirection(clamped > index ? 1 : -1);
+      setIndex(clamped);
     },
-    [index, isMobile, pageCount],
+    [index, pageCount],
   );
 
-  const finishTurn = () => {
-    setTurn((current) => {
-      if (current) setIndex(current.to);
-      return null;
-    });
-    locked.current = false;
-  };
-
-  // Arrow keys turn the book, the way you would with a real one on your lap.
+  // Arrow keys turn the book.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") go(index + 1);
@@ -218,26 +201,16 @@ export function WinsBook() {
     return () => window.removeEventListener("keydown", onKey);
   }, [go, index]);
 
-  // While a sheet is in flight, the two stacked pages show what is left
-  // visible underneath it.
-  const leftIndex = turn ? (turn.dir === "next" ? turn.from : turn.to) : index;
-  const rightIndex = turn ? (turn.dir === "next" ? turn.to : turn.from) : index;
-
   const leftFace = (i: number) =>
     pages[i].type === "cover" ? <CoverLeft /> : <WinLeft win={pages[i].win} index={i} />;
   const rightFace = (i: number) =>
-    pages[i].type === "cover" ? <CoverRight /> : <WinRight win={pages[i].win} pageNumber={i + 1} />;
+    pages[i].type === "cover" ? (
+      <CoverRight />
+    ) : (
+      <WinRight win={pages[i].win} pageNumber={i + 1} />
+    );
 
-  const sheetFront = turn
-    ? turn.dir === "next"
-      ? rightFace(turn.from)
-      : leftFace(turn.from)
-    : null;
-  const sheetBack = turn
-    ? turn.dir === "next"
-      ? leftFace(turn.to)
-      : rightFace(turn.to)
-    : null;
+  const shift = reducedMotion ? 0 : direction * 22;
 
   return (
     <section id="wins" className="relative scroll-mt-20">
@@ -248,104 +221,60 @@ export function WinsBook() {
           </h2>
           <p className="mt-4 max-w-2xl lead">
             Every hackathon, contest and stage I have been part of — one page
-            each, photo and story together. Turn them.
+            each, photo and story together. Click the page to move through it.
           </p>
         </Reveal>
       </div>
 
       <div className="mx-auto w-full max-w-5xl px-5 pb-24 sm:px-8">
         <div className="relative">
-          <div
-            className="relative rounded-[4px] border border-[#d9c3ae] bg-[#fffaf3] shadow-[0_60px_110px_-70px_rgba(60,32,44,0.9)]"
-            style={{ perspective: 2600 }}
-          >
-            {/* Shadow the turning sheet casts onto the spread underneath. */}
-            <motion.div
-              aria-hidden="true"
-              className={cn(
-                "pointer-events-none absolute inset-y-0 z-10 w-1/3",
-                turn?.dir === "prev" ? "left-0" : "right-0",
-              )}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: turn ? 0.55 : 0 }}
-              transition={{ duration: turn ? 0.5 : 0.25 }}
-              style={{
-                // Darkest at the spine, fading outwards across the page below.
-                backgroundImage:
-                  turn?.dir === "prev"
-                    ? "linear-gradient(to left, rgba(60,32,44,0.4), rgba(60,32,44,0))"
-                    : "linear-gradient(to right, rgba(60,32,44,0.4), rgba(60,32,44,0))",
-              }}
-            />
-            {/* Static halves; clipped, while the turning sheet is not. */}
+          <div className="relative rounded-[4px] border border-[#d9c3ae] bg-[#fffaf3] shadow-[0_60px_110px_-70px_rgba(60,32,44,0.9)]">
             <div className="overflow-hidden rounded-[4px]">
-              {isMobile ? (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  {leftFace(index)}
-                  <div className="border-t border-[#e6c9ae]">{rightFace(index)}</div>
-                </motion.div>
-              ) : (
-                <div className="grid min-h-[29rem] grid-cols-2">
-                  <div className="border-r border-[#e6c9ae]">{leftFace(leftIndex)}</div>
-                  <div>{rightFace(rightIndex)}</div>
-                </div>
-              )}
-            </div>
-
-            {/* The turning sheet */}
-            {turn && !isMobile ? (
               <motion.div
-                key={`${turn.from}-${turn.to}`}
-                initial={{ rotateY: 0 }}
-                animate={{ rotateY: turn.dir === "next" ? -180 : 180 }}
-                transition={{ duration: 1.05, ease: [0.4, 0.22, 0.2, 1] }}
-                onAnimationComplete={finishTurn}
-                className={cn(
-                  "absolute top-0 z-20 h-full w-1/2",
-                  turn.dir === "next" ? "right-0" : "left-0",
-                )}
-                style={{
-                  transformStyle: "preserve-3d",
-                  transformOrigin: turn.dir === "next" ? "left center" : "right center",
+                key={index}
+                initial={{ opacity: 0, x: shift }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: reducedMotion ? 0.01 : 0.3,
+                  ease: [0.22, 1, 0.36, 1],
                 }}
               >
-                <div
-                  className="absolute inset-0 h-full w-full shadow-[0_0_50px_-10px_rgba(60,32,44,0.5)]"
-                  style={{ backfaceVisibility: "hidden" }}
-                >
-                  {sheetFront}
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      backgroundImage:
-                        "linear-gradient(to right, rgba(60,32,44,0.22), rgba(60,32,44,0) 40%)",
-                    }}
-                  />
-                </div>
-                <div
-                  className="absolute inset-0 h-full w-full"
-                  style={{
-                    backfaceVisibility: "hidden",
-                    transform: "rotateY(180deg)",
-                  }}
-                >
-                  {sheetBack}
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      backgroundImage:
-                        "linear-gradient(to left, rgba(60,32,44,0.22), rgba(60,32,44,0) 40%)",
-                    }}
-                  />
-                </div>
+                {isMobile ? (
+                  <>
+                    {leftFace(index)}
+                    <div className="border-t border-[#e6c9ae]">{rightFace(index)}</div>
+                  </>
+                ) : (
+                  <div className="grid min-h-[29rem] grid-cols-2">
+                    <div className="border-r border-[#e6c9ae]">{leftFace(index)}</div>
+                    <div>{rightFace(index)}</div>
+                  </div>
+                )}
               </motion.div>
+            </div>
+
+            {/* Click zones: left half back, right half forward. */}
+            {!isMobile ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => go(index - 1)}
+                  disabled={index === 0}
+                  aria-label="Previous page"
+                  className="group absolute inset-y-0 left-0 z-30 w-1/2 cursor-w-resize rounded-l-[4px] disabled:cursor-default"
+                >
+                  <span className="pointer-events-none absolute inset-0 rounded-l-[4px] bg-[#6d3a55]/0 transition-colors duration-200 group-hover:bg-[#6d3a55]/[0.05] group-focus-visible:bg-[#6d3a55]/[0.05]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => go(index + 1)}
+                  disabled={index === pageCount - 1}
+                  aria-label="Next page"
+                  className="group absolute inset-y-0 right-0 z-30 w-1/2 cursor-e-resize rounded-r-[4px] disabled:cursor-default"
+                >
+                  <span className="pointer-events-none absolute inset-0 rounded-r-[4px] bg-[#6d3a55]/0 transition-colors duration-200 group-hover:bg-[#6d3a55]/[0.05] group-focus-visible:bg-[#6d3a55]/[0.05]" />
+                </button>
+              </>
             ) : null}
           </div>
 
@@ -371,7 +300,7 @@ export function WinsBook() {
             <button
               type="button"
               onClick={() => go(index + 1)}
-              disabled={index === pages.length - 1}
+              disabled={index === pageCount - 1}
               className="flex items-center gap-2 rounded-[3px] border border-border bg-card px-4 py-2.5 text-[14px] transition-colors hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-35"
             >
               Next page
@@ -381,7 +310,7 @@ export function WinsBook() {
 
           <p className="counter text-[14px]">
             {String(index + 1).padStart(2, "0")} /{" "}
-            {String(pages.length).padStart(2, "0")}
+            {String(pageCount).padStart(2, "0")}
           </p>
 
           <div className="flex items-center gap-2">

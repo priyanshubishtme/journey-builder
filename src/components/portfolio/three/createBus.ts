@@ -26,6 +26,9 @@ const HEAD = 2.58;
  * the illuminated interior and the passenger at the window are actually
  * visible through the glazing. `detail: "low"` keeps a closed, simpler body
  * for background buses.
+ *
+ * Forward is **-Z** (windscreen, headlights and door sit at negative z), which
+ * matches the direction every scene drives the bus in.
  */
 export function createBus({ detail = "high" }: { detail?: "high" | "low" } = {}): BusModel {
   const group = new THREE.Group();
@@ -110,12 +113,12 @@ export function createBus({ detail = "high" }: { detail?: "high" | "low" } = {})
     group.add(rail);
   }
 
-  // Windscreen and rear window.
+  // Windscreen (front, -Z) and rear window.
   const windscreen = new THREE.Mesh(new THREE.BoxGeometry(WIDTH - 0.34, HEAD - SILL - 0.1, 0.05), glass);
-  windscreen.position.set(0, (SILL + HEAD) / 2, halfLength - 0.02);
+  windscreen.position.set(0, (SILL + HEAD) / 2, -halfLength + 0.02);
   group.add(windscreen);
   const rear = new THREE.Mesh(new THREE.BoxGeometry(WIDTH - 0.5, HEAD - SILL - 0.2, 0.05), glass);
-  rear.position.set(0, (SILL + HEAD) / 2, -halfLength + 0.02);
+  rear.position.set(0, (SILL + HEAD) / 2, halfLength - 0.02);
   group.add(rear);
 
   if (detailed) {
@@ -138,10 +141,10 @@ export function createBus({ detail = "high" }: { detail?: "high" | "low" } = {})
     // Wing mirrors.
     for (const side of [-1, 1]) {
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.45), inkMat);
-      post.position.set(side * (WIDTH / 2 + 0.2), 2.5, halfLength - 0.6);
+      post.position.set(side * (WIDTH / 2 + 0.2), 2.5, -halfLength + 0.6);
       group.add(post);
       const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.3, 0.22), inkMat);
-      mirror.position.set(side * (WIDTH / 2 + 0.32), 2.44, halfLength - 0.78);
+      mirror.position.set(side * (WIDTH / 2 + 0.32), 2.44, -halfLength + 0.78);
       group.add(mirror);
     }
 
@@ -152,9 +155,9 @@ export function createBus({ detail = "high" }: { detail?: "high" | "low" } = {})
       group.add(vent);
     }
 
-    // Door on the kerb side.
+    // Door on the kerb side, at the front step.
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.15, 1.1), inkMat);
-    door.position.set(WIDTH / 2 - 0.02, 1.4, 2.05);
+    door.position.set(WIDTH / 2 - 0.02, 1.4, -2.05);
     group.add(door);
   }
 
@@ -163,10 +166,10 @@ export function createBus({ detail = "high" }: { detail?: "high" | "low" } = {})
       new THREE.BoxGeometry(WIDTH - 0.3, HEAD - SILL, 0.06),
       inkMat,
     );
-    windscreenLow.position.set(0, (SILL + HEAD) / 2, halfLength + 0.01);
+    windscreenLow.position.set(0, (SILL + HEAD) / 2, -halfLength - 0.01);
     group.add(windscreenLow);
     const rearLow = windscreenLow.clone();
-    rearLow.position.z = -halfLength - 0.01;
+    rearLow.position.z = halfLength + 0.01;
     group.add(rearLow);
   }
 
@@ -177,15 +180,16 @@ export function createBus({ detail = "high" }: { detail?: "high" | "low" } = {})
     group.add(bumper);
   }
 
+  // Headlights on the front face (-Z), tail lights on the back (+Z).
   const headlights: THREE.Mesh[] = [];
   for (const x of [-0.84, 0.84]) {
     const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.24, 0.1), headMat);
-    head.position.set(x, 1.16, halfLength + 0.03);
+    head.position.set(x, 1.16, -halfLength - 0.03);
     group.add(head);
     headlights.push(head);
 
     const tail = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.22, 0.1), tailMat);
-    tail.position.set(x, 1.24, -halfLength - 0.03);
+    tail.position.set(x, 1.24, halfLength + 0.03);
     group.add(tail);
   }
 
