@@ -13,10 +13,15 @@ import { useRef, useState } from "react";
 
 const COUNT = journeyScenes.length;
 
+/** Fraction of each transition spent holding the panel still, so every scene
+ * stays put long enough to be read before it slides on. */
+const DWELL = 0.24;
+
 /**
  * One scene card. Its horizontal position is a pure function of the scroll:
  * `p` is how far this card is from the middle of its own stretch of the
- * journey, so cards slide in from ahead of the bus and drift away behind it.
+ * journey. The dwell mapping keeps it centred for a beat, then it slides in
+ * from ahead of the bus and drifts away behind it.
  */
 function ScenePanel({
   scene,
@@ -27,14 +32,19 @@ function ScenePanel({
   index: number;
   progress: MotionValue<number>;
 }) {
-  const p = useTransform(progress, (value) => value * COUNT - index);
-  const x = useTransform(p, [-1, 0, 1], ["42%", "0%", "-42%"]);
-  const opacity = useTransform(p, [-0.72, -0.28, 0.28, 0.72], [0, 1, 1, 0]);
-  const scale = useTransform(p, [-1, 0, 1], [0.94, 1, 0.94]);
+  const p = useTransform(progress, (value) => {
+    const raw = value * COUNT - index;
+    const sign = Math.sign(raw);
+    return (sign * Math.max(0, Math.abs(raw) - DWELL)) / (1 - DWELL);
+  });
+  const x = useTransform(p, [-1, 0, 1], ["40%", "0%", "-40%"]);
+  const opacity = useTransform(p, [-1, -0.32, 0.32, 1], [0, 1, 1, 0]);
+  const scale = useTransform(p, [-1, 0, 1], [0.95, 1, 0.95]);
+  const y = useTransform(p, [-1, 0, 1], [18, 0, 18]);
 
   return (
     <motion.div
-      style={{ x, opacity, scale, willChange: "transform, opacity" }}
+      style={{ x, opacity, scale, y, willChange: "transform, opacity" }}
       className="absolute inset-x-0 bottom-0"
     >
       <article className="border border-[#e6c9ae] bg-[#fff8ef]/96 p-4 shadow-[0_30px_70px_-40px_rgba(43,26,42,0.85)] backdrop-blur-sm sm:p-5">
@@ -141,7 +151,7 @@ export function JourneyScene() {
           {/* Panels */}
           <div className="pointer-events-none absolute inset-0">
             <div className="relative mx-auto flex h-full w-full max-w-6xl flex-col justify-end px-5 pb-14 sm:justify-center sm:px-8 sm:pb-0">
-              <div className="pointer-events-auto relative w-full max-w-[26rem] min-h-[18rem] sm:max-w-[28rem] sm:min-h-[24rem]">
+              <div className="pointer-events-auto relative w-full max-w-[27rem] min-h-[18rem] sm:max-w-[30rem] sm:min-h-[23rem]">
                 {nearby.map((index) => (
                   <ScenePanel
                     key={journeyScenes[index].id}

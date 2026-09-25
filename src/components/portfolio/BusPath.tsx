@@ -7,9 +7,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 type Point = { x: number; y: number };
 
-/** Where the dotted line runs, and how far each stop swings off it. */
-const RAIL_X = 24;
-const DOT_SWING = 8;
+const RAIL_X = 26;
+const GUTTER_AMPLITUDE = 64;
 const LEAD = 70;
 const EDUCATION_TINT = "#e07a2c";
 const EXPERIENCE_TINT = "#c33b63";
@@ -36,13 +35,12 @@ function buildRoutePath(points: Point[]) {
 /**
  * Section 03 — Route.
  *
- * School → university → first role, one stop under the next down a single
- * dotted bus route. The card positions are measured from the DOM, converted
- * into a 3D curve, and a tilted orthographic camera keeps the pins and the bus
- * aligned to the pixel while giving them real depth.
- *
- * Deliberately one column at every breakpoint: a zig-zag spread made the order
- * read as two stops side by side, which is exactly what it must not do.
+ * Education and experience as stops on a zig-zag dotted bus route — school,
+ * then university, then the current role, each card on the side the bus is
+ * passing. Card positions are measured from the DOM, converted into a 3D
+ * curve, and a tilted orthographic camera keeps the pins and the bus aligned
+ * to the pixel while giving them real depth. On phones the stops stack in one
+ * column beside the rail.
  */
 export function BusPath() {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -76,16 +74,23 @@ export function BusPath() {
     const measure = () => {
       const wrap = wrapRef.current;
       if (!wrap) return;
+      const width = wrap.clientWidth;
+      const centered = width / 2;
       const measured: Point[] = [];
 
       cardRefs.current.forEach((node, index) => {
         if (!node) return;
         const y = node.offsetTop + node.offsetHeight / 2;
-        const x = RAIL_X + (index % 2 === 0 ? -1 : 1) * DOT_SWING;
+        const x =
+          width < 768
+            ? RAIL_X
+            : index % 2 === 0
+              ? centered + GUTTER_AMPLITUDE
+              : centered - GUTTER_AMPLITUDE;
         measured.push({ x, y });
       });
 
-      setBox({ width: wrap.clientWidth, height: wrap.scrollHeight });
+      setBox({ width, height: wrap.scrollHeight });
       setStops(measured);
     };
 
@@ -126,7 +131,7 @@ export function BusPath() {
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-5 pb-24 sm:px-8">
-        <div ref={wrapRef} className="relative w-full max-w-3xl">
+        <div ref={wrapRef} className="relative">
           {/* 3D layer: tilted plane with the pins and the bus on the route */}
           <div ref={sceneHostRef} className="pointer-events-none absolute inset-0 z-[2]" />
 
@@ -165,62 +170,72 @@ export function BusPath() {
             </svg>
           ) : null}
 
-          {/* Stops, top to bottom */}
-          <div className="relative z-10 flex flex-col gap-12">
+          {/* Stops, weaving left and right down the page */}
+          <div className="relative z-10 flex flex-col gap-12 md:grid md:grid-cols-2 md:gap-x-44 md:gap-y-16">
             {routeStops.map((stop, index) => {
               const tint = index <= 1 ? EDUCATION_TINT : EXPERIENCE_TINT;
               return (
-                <article
+                <div
                   key={stop.id}
-                  ref={(node) => {
-                    cardRefs.current[index] = node;
-                  }}
                   className={cn(
-                    "relative ml-12 w-full border bg-card p-6 transition-colors duration-300 sm:p-7 md:ml-14 md:max-w-[36rem]",
-                    index === activeStop
-                      ? "border-[#e07a2c]/60 shadow-[0_26px_60px_-44px_rgba(43,26,42,0.9)]"
-                      : "border-border hover:border-[#c9863f]/45",
+                    "flex items-center",
+                    index % 2 === 0 ? "md:col-start-1 md:justify-end" : "md:col-start-2",
                   )}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="absolute top-0 left-0 h-full w-[3px]"
-                    style={{ backgroundColor: tint }}
-                  />
+                  <article
+                    ref={(node) => {
+                      cardRefs.current[index] = node;
+                    }}
+                    className={cn(
+                      "relative ml-12 w-full border bg-card p-6 transition-colors duration-300 sm:p-7 md:ml-0 md:max-w-[26rem]",
+                      index === activeStop
+                        ? "border-[#e07a2c]/60 shadow-[0_26px_60px_-44px_rgba(43,26,42,0.9)]"
+                        : "border-border hover:border-[#c9863f]/45",
+                    )}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute top-0 h-full w-[3px]",
+                        index % 2 === 0 ? "right-0" : "left-0",
+                      )}
+                      style={{ backgroundColor: tint }}
+                    />
 
-                  <p className="text-[13px] font-medium" style={{ color: tint }}>
-                    {stop.kind}
-                  </p>
-
-                  <h3 className="mt-3 font-display text-2xl leading-8 tracking-[-0.01em] text-[#33202c] sm:text-[26px] sm:leading-9">
-                    {stop.title}
-                  </h3>
-
-                  <p className="mt-3 text-[15px] leading-6 text-[#6b4a52]">
-                    {stop.place}
-                    <span className="text-muted-foreground"> · {stop.period}</span>
-                  </p>
-
-                  {stop.grade ? (
-                    <p
-                      className="mt-5 bg-clip-text font-display text-3xl tracking-[-0.02em] text-transparent"
-                      style={{ backgroundImage: "linear-gradient(90deg, #f0703a, #d4466e)" }}
-                    >
-                      {stop.grade}
+                    <p className="text-[13px] font-medium" style={{ color: tint }}>
+                      {stop.kind} · {String(index + 1).padStart(2, "0")}
                     </p>
-                  ) : null}
 
-                  <ul className="mt-6 space-y-3 border-t border-border pt-6 text-[15px] leading-7 text-muted-foreground">
-                    {stop.points.map((entry) => (
-                      <li key={entry} className="flex gap-3">
-                        <span aria-hidden="true" style={{ color: tint }}>
-                          —
-                        </span>
-                        <span>{entry}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
+                    <h3 className="mt-3 font-display text-2xl leading-8 tracking-[-0.01em] text-[#33202c] sm:text-[26px] sm:leading-9">
+                      {stop.title}
+                    </h3>
+
+                    <p className="mt-3 text-[15px] leading-6 text-[#6b4a52]">
+                      {stop.place}
+                      <span className="text-muted-foreground"> · {stop.period}</span>
+                    </p>
+
+                    {stop.grade ? (
+                      <p
+                        className="mt-5 bg-clip-text font-display text-3xl tracking-[-0.02em] text-transparent"
+                        style={{ backgroundImage: "linear-gradient(90deg, #f0703a, #d4466e)" }}
+                      >
+                        {stop.grade}
+                      </p>
+                    ) : null}
+
+                    <ul className="mt-6 space-y-3 border-t border-border pt-6 text-[15px] leading-7 text-muted-foreground">
+                      {stop.points.map((entry) => (
+                        <li key={entry} className="flex gap-3">
+                          <span aria-hidden="true" style={{ color: tint }}>
+                            —
+                          </span>
+                          <span>{entry}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </article>
+                </div>
               );
             })}
           </div>

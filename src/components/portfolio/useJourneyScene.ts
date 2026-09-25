@@ -35,7 +35,7 @@ import { SUNSET, createGlowTexture, createSkySampler, seededRandom } from "./thr
 
 const WORLD_LENGTH = 280;
 const TRAVEL_DISTANCE = 900;
-const CAMERA_LOOK_AHEAD = 2.2;
+const CAMERA_LOOK_AHEAD = 0.8;
 
 type Shot = {
   /** Lateral distance from the bus. */
@@ -47,15 +47,20 @@ type Shot = {
   fov: number;
 };
 
-/** One framing per stop, all side-on so the journey reads as one continuous shot. */
+/**
+ * One framing per stop, all side-on so the journey reads as one continuous
+ * shot. The presets stay inside a narrow band — gentle reframes, not swoops —
+ * and never come closer than ~9.6 units, which is the keep-out line for
+ * roadside props (rocks, trees, mist all stay inside x ≤ 7.8).
+ */
 const SHOTS: Shot[] = [
-  { distance: 11.4, height: 3.7, aimBehind: 4.4, aimHeight: 2.0, fov: 50 },
-  { distance: 9.8, height: 3.1, aimBehind: 3.8, aimHeight: 1.9, fov: 53 },
-  { distance: 13.6, height: 5.6, aimBehind: 6.4, aimHeight: 2.3, fov: 46 },
-  { distance: 8.9, height: 2.7, aimBehind: 3.1, aimHeight: 1.8, fov: 55 },
-  { distance: 12.2, height: 4.2, aimBehind: 5.0, aimHeight: 2.1, fov: 48 },
-  { distance: 10.4, height: 3.3, aimBehind: 4.2, aimHeight: 1.9, fov: 52 },
-  { distance: 15.6, height: 6.8, aimBehind: 7.6, aimHeight: 2.5, fov: 44 },
+  { distance: 10.6, height: 3.4, aimBehind: 0.4, aimHeight: 2.0, fov: 52 },
+  { distance: 9.8, height: 3.1, aimBehind: 0.2, aimHeight: 1.9, fov: 53 },
+  { distance: 12.8, height: 4.6, aimBehind: 0.8, aimHeight: 2.2, fov: 48 },
+  { distance: 9.6, height: 3.0, aimBehind: 0.0, aimHeight: 1.9, fov: 54 },
+  { distance: 11.6, height: 4.0, aimBehind: 0.6, aimHeight: 2.1, fov: 50 },
+  { distance: 10.2, height: 3.3, aimBehind: 0.2, aimHeight: 2.0, fov: 52 },
+  { distance: 13.2, height: 5.0, aimBehind: 1.2, aimHeight: 2.3, fov: 46 },
 ];
 
 const smoothstep = (value: number) => {
@@ -246,14 +251,15 @@ export function useJourneyScene(
       return { canopyMaterial, trunkMaterial };
     };
 
-    // Kept clear of the camera lane (x ≈ 9–15) so these frame the shot instead
-    // of wiping across the lens.
+    // Kept clear of the camera lane: the closest framing is 9.6 units out, so
+    // near-side props stay inside x ≤ 7.8 and frame the shot without ever
+    // crossing the lens.
     const foregroundTrees = makeForestBand({
       count: 9,
-      xMin: 7.6,
-      xMax: 10.2,
+      xMin: 6.6,
+      xMax: 7.8,
       scaleMin: 1,
-      scaleMax: 1.5,
+      scaleMax: 1.4,
       trunkHeight: 2.9,
       trunkRadius: 0.22,
       canopyHeight: 2.7,
@@ -297,7 +303,7 @@ export function useJourneyScene(
     const rockCount = Math.round(26 * density);
     const rockItems: Item[] = Array.from({ length: rockCount }, (_, i) => ({
       offset: (i / rockCount) * WORLD_LENGTH + random() * 7,
-      x: (i % 2 === 0 ? -1 : 1) * (6.3 + random() * 3.1),
+      x: (i % 2 === 0 ? -1 : 1) * (5.8 + random() * 1.4),
       scale: 0.4 + random() * 0.8,
       rotation: random() * Math.PI,
     }));
@@ -311,16 +317,18 @@ export function useJourneyScene(
       0.36,
     );
 
-    // Mist patches drifting between the trees. The yaw turns each plane to
-    // face the roadside camera, otherwise it would be an invisible sliver.
-    const mistCount = Math.round(12 * density);
+    // Mist patches drifting through the forest on the far side of the bus.
+    // They never sit between the camera and the bus: additive planes that
+    // close would wash the whole frame out. The yaw turns each plane to face
+    // the roadside camera, otherwise it would be an invisible sliver.
+    const mistCount = Math.round(10 * density);
     const mistItems: Item[] = Array.from({ length: mistCount }, (_, i) => ({
       offset: (i / mistCount) * WORLD_LENGTH + random() * 9,
-      x: i % 3 === 0 ? 7.5 + random() * 2 : -12 - random() * 110,
-      scale: 0.7 + random() * 1.2,
+      x: -9 - random() * 70,
+      scale: 0.6 + random() * 0.7,
       rotation: -Math.PI / 2,
     }));
-    const mistTemplate = createMistPatch(90, "#ffe0bd", 0.1);
+    const mistTemplate = createMistPatch(48, "#ffe0bd", 0.1);
     const mistMaterial = mistTemplate.material as THREE.MeshBasicMaterial;
     register(
       new THREE.InstancedMesh(mistTemplate.geometry, mistMaterial, mistItems.length),
@@ -518,8 +526,8 @@ export function useJourneyScene(
       const fov = a.fov + (b.fov - a.fov) * blend;
 
       desiredPosition.set(
-        distance + (reducedMotion ? 0 : Math.sin(time * 0.38) * 0.35),
-        height + (reducedMotion ? 0 : Math.sin(time * 0.82) * 0.12),
+        distance + (reducedMotion ? 0 : Math.sin(time * 0.38) * 0.22),
+        height + (reducedMotion ? 0 : Math.sin(time * 0.82) * 0.08),
         bus.position.z + CAMERA_LOOK_AHEAD,
       );
       desiredTarget.set(0.5, aimHeight, bus.position.z + aimBehind);
@@ -527,7 +535,7 @@ export function useJourneyScene(
       cameraTarget.lerp(desiredTarget, reducedMotion ? 1 : 0.12);
       camera.position.copy(cameraPosition);
       camera.lookAt(cameraTarget);
-      if (!reducedMotion) camera.rotateZ(Math.sin(time * 0.5) * 0.012);
+      if (!reducedMotion) camera.rotateZ(Math.sin(time * 0.5) * 0.006);
       if (Math.abs(camera.fov - fov) > 0.05) {
         camera.fov += (fov - camera.fov) * 0.07;
         camera.updateProjectionMatrix();
@@ -553,7 +561,8 @@ export function useJourneyScene(
       skyDome.mesh.position.copy(camera.position);
       skyDome.update(current);
       sun.update(current, camera.position);
-      sun.group.position.set(camera.position.x - 700, 30 + current.sunHeight * 200, camera.position.z - 180);
+      // Low and ahead of the bus, so the drive reads as heading into the sun.
+      sun.group.position.set(camera.position.x - 700, 30 + current.sunHeight * 200, camera.position.z - 110);
       clouds.update(dt, camera.position.z, current.mid);
       stars.update(current, camera.position);
       birds.update(time, camera.position.z);
