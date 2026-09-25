@@ -6,26 +6,35 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 const TIERS = ["Gold", "Silver", "Bronze"] as const;
+const TIER_COLORS: Record<Win["tier"], string> = {
+  Gold: "#f0a53a",
+  Silver: "#b9ae9f",
+  Bronze: "#b5714a",
+};
 
 type Page = { type: "cover" } | { type: "win"; win: Win };
 
 /** A small number ladder showing where a win sits. */
 function TierMark({ tier, className }: { tier: Win["tier"]; className?: string }) {
   const rank = TIERS.indexOf(tier);
+  const tint = TIER_COLORS[tier];
   return (
     <span className={cn("flex items-center gap-2", className)}>
       <span className="flex gap-1">
         {TIERS.map((item, index) => (
           <span
             key={item}
-            className={cn(
-              "size-2 border border-foreground/50",
-              index <= rank ? "bg-foreground" : "bg-transparent",
-            )}
+            className="size-2"
+            style={{
+              backgroundColor: index <= rank ? tint : "transparent",
+              border: `1px solid ${index <= rank ? tint : "rgba(181,113,74,0.5)"}`,
+            }}
           />
         ))}
       </span>
-      <span className="label-mono">{tier}</span>
+      <span className="label-mono" style={{ color: tint }}>
+        {tier}
+      </span>
     </span>
   );
 }
@@ -77,7 +86,16 @@ export function WinsBook() {
             aria-hidden="true"
             className="absolute inset-x-3 -bottom-1.5 h-3 rounded-b-sm border-x border-b border-border bg-secondary"
           />
-          <div className="relative border border-border bg-card">
+          <div className="relative border border-border bg-card shadow-[0_50px_90px_-70px_rgba(43,26,42,0.9)]">
+            {/* Book spine */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-10 -translate-x-1/2 md:block"
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, rgba(181,113,74,0) 0%, rgba(181,113,74,0.16) 42%, rgba(43,26,42,0.22) 50%, rgba(181,113,74,0.16) 58%, rgba(181,113,74,0) 100%)",
+              }}
+            />
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={index}
@@ -221,8 +239,8 @@ export function WinsBook() {
                   item.type === "cover" ? "Cover" : item.win.title
                 }
                 className={cn(
-                  "h-px w-5 bg-border transition-colors hover:bg-foreground/50",
-                  itemIndex === index && "bg-foreground",
+                  "h-px w-5 transition-colors",
+                  itemIndex === index ? "bg-primary" : "bg-border hover:bg-primary/40",
                 )}
               />
             ))}

@@ -18,15 +18,20 @@ export function SiteHeader() {
       className={cn(
         "fixed inset-x-0 top-0 z-50 transition-colors duration-300",
         scrolled
-          ? "border-b border-border bg-background/85 backdrop-blur-md"
+          ? "border-b border-border bg-background/80 backdrop-blur-md"
           : "border-b border-transparent",
       )}
     >
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <a
           href="#top"
-          className="font-mono text-[11px] uppercase tracking-[0.22em] text-foreground"
+          className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-foreground"
         >
+          <span
+            aria-hidden="true"
+            className="size-2 rounded-full"
+            style={{ backgroundImage: "linear-gradient(135deg, #ffc46b, #f0703a 60%, #d4466e)" }}
+          />
           {profile.brand}
         </a>
         <nav className="flex items-center gap-5 sm:gap-8">
@@ -34,14 +39,14 @@ export function SiteHeader() {
             <a
               key={link.href}
               href={link.href}
-              className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:block"
+              className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-primary sm:block"
             >
               {link.label}
             </a>
           ))}
           <a
             href={`mailto:${profile.email}`}
-            className="font-mono text-[11px] uppercase tracking-[0.18em] text-foreground underline decoration-border decoration-1 underline-offset-4 transition-colors hover:decoration-foreground"
+            className="font-mono text-[11px] uppercase tracking-[0.18em] text-primary underline decoration-[#e8a06a] decoration-1 underline-offset-4 transition-colors hover:decoration-primary"
           >
             Email
           </a>

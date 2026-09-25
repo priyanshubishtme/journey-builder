@@ -1,6 +1,6 @@
 import { AssetPlaceholder } from "@/components/portfolio/AssetPlaceholder";
 import { journeyScenes } from "@/data/profile";
-import { useBusScene } from "@/components/portfolio/useBusScene";
+import { useJourneyScene } from "@/components/portfolio/useJourneyScene";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -8,8 +8,9 @@ import { cn } from "@/lib/utils";
 /**
  * Section 01 — The journey.
  *
- * A tall scroll track with a sticky viewport: the three.js bus drives forward
- * while caption cards for each stop cross-fade on the top-left.
+ * A tall scroll track with a sticky viewport: the three.js bus drives through
+ * a sunset, cut like a film between stops, while caption cards for each stop
+ * cross-fade on the top-left.
  */
 export function JourneyScene() {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -18,7 +19,7 @@ export function JourneyScene() {
   const [active, setActive] = useState(0);
   const [progressLabel, setProgressLabel] = useState(0);
 
-  useBusScene(hostRef, progressRef, journeyScenes.length);
+  useJourneyScene(hostRef, progressRef, journeyScenes.length);
 
   const { scrollYProgress } = useScroll({
     target: trackRef,
@@ -52,7 +53,7 @@ export function JourneyScene() {
       <div className="mx-auto w-full max-w-6xl px-5 pt-20 pb-10 sm:px-8">
         <div className="flex items-end justify-between gap-6 border-b border-border pb-4">
           <div>
-            <p className="label-mono">Section 01</p>
+            <p className="label-mono text-clay">Section 01</p>
             <h2 className="mt-3 font-display text-3xl tracking-[-0.02em] sm:text-4xl">
               The journey
             </h2>
@@ -66,10 +67,21 @@ export function JourneyScene() {
       <div
         ref={trackRef}
         className="relative"
-        style={{ height: `${journeyScenes.length * 110}vh` }}
+        style={{ height: `${journeyScenes.length * 105}vh` }}
       >
         <div className="sticky top-0 h-[100svh] overflow-hidden">
-          <div ref={hostRef} className="absolute inset-0 bg-secondary" />
+          <div ref={hostRef} className="absolute inset-0 bg-[#f7c79a]" />
+
+          {/* Cinematic scrims: keeps the overlays legible over any sky. */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-52"
+            style={{ backgroundImage: "linear-gradient(to bottom, rgba(43,26,42,0.45), transparent)" }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-56"
+            style={{ backgroundImage: "linear-gradient(to top, rgba(43,26,42,0.55), transparent)" }}
+          />
+          <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_180px_rgba(43,26,42,0.35)]" />
 
           {/* Caption card, top-left */}
           <div className="pointer-events-none absolute inset-x-0 top-0 px-5 pt-20 sm:px-8 sm:pt-24">
@@ -80,21 +92,22 @@ export function JourneyScene() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                className="pointer-events-auto w-full max-w-[22rem] border border-border bg-card/92 p-4 backdrop-blur-sm sm:p-5"
+                className="pointer-events-auto w-full max-w-[22rem] border border-white/25 bg-[#fff8ef]/95 p-4 shadow-[0_18px_50px_-24px_rgba(43,26,42,0.65)] backdrop-blur-sm sm:p-5"
               >
                 <AssetPlaceholder
                   src={scene.image}
                   label={`Scene image · ${scene.title}`}
                   ratio="16 / 9"
                   frameClassName="w-full"
+                  tone={active}
                 />
-                <p className="label-mono mt-4">
+                <p className="label-mono mt-4 text-clay">
                   Stop {scene.stop} · {scene.period}
                 </p>
-                <h3 className="mt-2 font-display text-xl leading-6 tracking-[-0.01em] sm:text-2xl sm:leading-7">
+                <h3 className="mt-2 font-display text-xl leading-6 tracking-[-0.01em] text-[#2b1a2a] sm:text-2xl sm:leading-7">
                   {scene.title}
                 </h3>
-                <p className="mt-3 text-xs leading-5 text-muted-foreground sm:text-[13px] sm:leading-6">
+                <p className="mt-3 text-xs leading-5 text-[#5f4a52] sm:text-[13px] sm:leading-6">
                   {scene.body}
                 </p>
                 {scene.note ? (
@@ -108,19 +121,23 @@ export function JourneyScene() {
 
           {/* Live status + stop picker */}
           <div className="absolute inset-x-0 bottom-0 px-5 pb-6 sm:px-8 sm:pb-8">
-            <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 border border-border bg-card/92 p-4 backdrop-blur-sm">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 border border-white/20 bg-[#2b1a2a]/55 p-4 backdrop-blur-md">
               <div className="flex items-center gap-3">
-                <span className="label-mono w-[7.25rem] shrink-0 tabular-nums">
+                <span className="label-mono w-[7.25rem] shrink-0 tabular-nums text-[#ffe6c4]">
                   Journey {String(progressLabel).padStart(3, "0")}%
                 </span>
-                <span className="relative h-px flex-1 bg-border">
+                <span className="relative h-px flex-1 bg-white/25">
                   <span
-                    className="absolute inset-y-0 left-0 bg-foreground transition-[width] duration-200 ease-out"
-                    style={{ width: `${progressLabel}%` }}
+                    className="absolute inset-y-0 left-0 transition-[width] duration-200 ease-out"
+                    style={{
+                      width: `${progressLabel}%`,
+                      backgroundImage:
+                        "linear-gradient(90deg, #ffc46b, #f0703a 55%, #d4466e)",
+                    }}
                   />
                 </span>
-                <span className="label-mono hidden whitespace-nowrap sm:block">
-                  Scroll to move the bus
+                <span className="label-mono hidden whitespace-nowrap text-[#f6d5bd] sm:block">
+                  Scroll to drive
                 </span>
               </div>
 
@@ -133,8 +150,8 @@ export function JourneyScene() {
                     className={cn(
                       "font-mono text-[11px] uppercase tracking-[0.18em] transition-colors",
                       index === active
-                        ? "text-foreground underline decoration-1 underline-offset-[6px]"
-                        : "text-muted-foreground/70 hover:text-foreground",
+                        ? "text-[#fff3e2] underline decoration-[#ff9f45] decoration-2 underline-offset-[6px]"
+                        : "text-[#e8c8bd]/70 hover:text-[#fff3e2]",
                     )}
                     aria-current={index === active ? "true" : undefined}
                   >
