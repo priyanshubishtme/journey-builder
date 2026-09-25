@@ -37,6 +37,30 @@ const WORLD_LENGTH = 280;
 const TRAVEL_DISTANCE = 900;
 const CAMERA_LOOK_AHEAD = 0.8;
 
+/** Keep in sync with DWELL in JourneyScene.tsx: the bus parks exactly while a
+ * story panel holds still, then glides to the next stop as the panel slides. */
+const PANEL_DWELL = 0.24;
+
+/** Ease-in-out with a fast middle: pull away smoothly, brake smoothly. */
+const easeInOutCubic = (raw: number) =>
+  raw < 0.5 ? 4 * raw * raw * raw : 1 - Math.pow(-2 * raw + 2, 3) / 2;
+
+/**
+ * Scroll value (0..1) → position along the day, in stops.
+ *
+ * The bus is parked while a panel holds (|u − stop| ≤ dwell), then travels the
+ * middle of each segment on an eased curve — so the world moves in deliberate
+ * cinematic beats instead of tracking raw scroll 1:1.
+ */
+function stopCurve(value: number, total: number) {
+  const u = Math.min(Math.max(value, 0), 1) * total;
+  const index = Math.min(Math.floor(u), total - 1);
+  const local = u - index;
+  if (local <= PANEL_DWELL) return index;
+  if (local >= 1 - PANEL_DWELL) return index + 1;
+  return index + easeInOutCubic((local - PANEL_DWELL) / (1 - 2 * PANEL_DWELL));
+}
+
 type Shot = {
   /** Lateral distance from the bus. */
   distance: number;
@@ -62,11 +86,6 @@ const SHOTS: Shot[] = [
   { distance: 10.2, height: 3.3, aimBehind: 0.2, aimHeight: 2.0, fov: 52 },
   { distance: 13.2, height: 5.0, aimBehind: 1.2, aimHeight: 2.3, fov: 46 },
 ];
-
-const smoothstep = (value: number) => {
-  const t = Math.min(Math.max(value, 0), 1);
-  return t * t * (3 - 2 * t);
-};
 
 type Item = { offset: number; x: number; scale: number; rotation: number };
 type Layer = {
@@ -495,7 +514,10 @@ export function useJourneyScene(
     let running = false;
 
     const updateWorld = (progress: number, dt: number, time: number) => {
-      const travel = progress * TRAVEL_DISTANCE;
+      // Cinematic beats: parked at each stop while its panel reads, eased
+      // travel between them.
+      const stops = stopCurve(progress, sceneCount - 1);
+      const travel = (stops / (sceneCount - 1)) * TRAVEL_DISTANCE;
       const current = sampler.sample(progress);
 
       // Bus: holds its lane, bounces gently, wheels turning with distance.
@@ -513,12 +535,13 @@ export function useJourneyScene(
         busModel.rider.position.y = Math.sin(time * 1.6) * 0.02;
       }
 
-      // Roadside camera: eased between the per-stop framings.
-      const shot = Math.min(Math.max(progress, 0) * sceneCount, sceneCount - 1);
-      const shotIndex = Math.min(Math.floor(shot), sceneCount - 2);
-      const blend = smoothstep(shot - shotIndex);
-      const a = SHOTS[shotIndex % SHOTS.length];
-      const b = SHOTS[(shotIndex + 1) % SHOTS.length];
+      // Camera rides the same eased stop curve, so reframes happen between
+      // stops and the framing holds still while the bus does. ceil − 1 makes a
+      // parked bus land fully on its own framing instead of the next one.
+      const stopIndex = Math.min(Math.ceil(stops) - 1, SHOTS.length - 2);
+      const blend = Math.min(Math.max(stops - stopIndex, 0), 1);
+      const a = SHOTS[stopIndex];
+      const b = SHOTS[stopIndex + 1];
       const distance = a.distance + (b.distance - a.distance) * blend;
       const height = a.height + (b.height - a.height) * blend;
       const aimBehind = a.aimBehind + (b.aimBehind - a.aimBehind) * blend;

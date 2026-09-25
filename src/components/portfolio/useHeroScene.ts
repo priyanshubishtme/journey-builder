@@ -7,6 +7,7 @@ import {
   createDeer,
   createDust,
   createMistPatch,
+  createRabbit,
   createSilhouetteWall,
   createSkyDome,
   createSun,
@@ -68,13 +69,18 @@ export function useHeroScene(
     const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 3000);
     camera.position.set(0, 4.6, 20);
 
-    const hemi = new THREE.HemisphereLight("#ffe0b0", "#5d6b4a", 0.95);
+    const hemi = new THREE.HemisphereLight("#ffdcae", "#66744e", 0.9);
     scene.add(hemi);
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.38);
     scene.add(ambient);
-    const key = new THREE.DirectionalLight("#ffd9a0", 1.2);
-    key.position.set(-70, 55, -50);
+    const key = new THREE.DirectionalLight("#ffd9a0", 1.12);
+    key.position.set(-70, 42, -50);
     scene.add(key);
+    const warmFill = new THREE.DirectionalLight("#ff9f5c", 0.38);
+    warmFill.position.set(90, 18, 60);
+    scene.add(warmFill);
+    const warmAmbient = new THREE.AmbientLight("#ffc46b", 0.14);
+    scene.add(warmAmbient);
 
     // --- meadow floor --------------------------------------------------------
     const groundMaterial = new THREE.MeshLambertMaterial({ color: "#b7a35f" });
@@ -222,6 +228,24 @@ export function useHeroScene(
     makeTreeBand(isWide ? 55 : 28, 95, 320, -250, -120, "#48683e", 1.2, true);
     // A few trees behind the deer on the near right, framing them.
     makeTreeBand(isWide ? 12 : 7, 4, 30, -34, -10, "#4c6b41", 1.35, true);
+
+  // --- rabbits near the meadow edge, away from the road -------------------
+    const rabbitGroup = new THREE.Group();
+    const rabbits: ReturnType<typeof createRabbit>[] = [];
+    const rabbitSpots: { x: number; z: number; s: number }[] = [
+      { x: -12, z: -13, s: 1 },
+      { x: 22, z: -35, s: 0.85 },
+      { x: -26, z: -30, s: 0.9 },
+    ];
+    for (const spot of rabbitSpots) {
+      const rabbit = createRabbit("#a58768");
+      rabbit.group.position.set(spot.x, 0, spot.z);
+      rabbit.group.rotation.y = -0.6 + random() * 1.2;
+      rabbit.group.scale.setScalar(spot.s);
+      rabbitGroup.add(rabbit.group);
+      rabbits.push(rabbit);
+    }
+    scene.add(rabbitGroup);
 
     // --- meadow dressing: grass tufts, bushes, flowers ----------------------
     const tuftGeometry = new THREE.ConeGeometry(0.32, 1.1, 5);
@@ -403,6 +427,11 @@ export function useHeroScene(
       const fade = Math.min(Math.max((BUS_TRAVEL - s) / (BUS_TRAVEL - fadeStart), 0), 1);
       bus.scale.setScalar(fade * fade);
       bus.visible = fade > 0.02;
+
+  // Rabbits idle and hop near the meadow edge.
+      for (let i = 0; i < rabbits.length; i += 1) {
+        rabbits[i].update(time, i * 3.7, reducedMotion);
+      }
 
       // Deer graze and drift, always in the meadow.
       for (let i = 0; i < deer.length; i += 1) {

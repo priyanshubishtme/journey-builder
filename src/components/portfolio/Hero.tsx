@@ -49,12 +49,22 @@ export function Hero() {
     <section id="top" ref={heroRef} className="relative min-h-[100svh] w-full overflow-hidden">
       {/* Live 3D sunset */}
       <div ref={sceneHostRef} className="pointer-events-none absolute inset-0" />
+      {/* Soft warm light through the middle — no white wash, so the vista stays
+          rich while text keeps contrast. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
         style={{
           backgroundImage:
-            "radial-gradient(62% 58% at 50% 44%, rgba(255,248,239,0.92), rgba(255,248,239,0.5) 52%, rgba(255,248,239,0) 78%)",
+            "radial-gradient(58% 46% at 50% 40%, rgba(60,30,45,0.18), rgba(60,30,45,0) 68%)",
+        }}
+      />
+      {/* Cinematic vignette anchors the frame and guides the eye inward. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          boxShadow: "inset 0 0 180px 60px rgba(43,26,42,0.28)",
         }}
       />
       <div
@@ -75,7 +85,7 @@ export function Hero() {
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-6xl flex-col justify-between gap-8 px-5 pt-24 pb-8 sm:px-8 sm:pt-28 sm:pb-12">
         {/* Status line — the only top-row content, and readable. */}
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2.5 text-[13px] font-medium text-[#8d4a33]">
+          <span className="inline-flex items-center gap-2.5 text-[13px] font-medium text-[#7d3b26]">
             <span aria-hidden="true" className="relative flex size-2">
               <span className="absolute inline-flex size-2 animate-ping rounded-full bg-[#e8564a]/60" />
               <span className="relative inline-flex size-2 rounded-full bg-[#e8564a]" />
@@ -84,7 +94,7 @@ export function Hero() {
           </span>
           <motion.span
             style={{ opacity: cueOpacity }}
-            className="text-[13px] tracking-[0.02em] text-[#a9714c]"
+            className="text-[13px] tracking-[0.02em] text-[#8d4a33]"
           >
             Scroll
           </motion.span>
@@ -93,8 +103,18 @@ export function Hero() {
         {/* Portrait + heading */}
         <motion.div
           style={{ y: contentY, opacity: contentOpacity }}
-          className="flex flex-1 flex-col items-center justify-center py-6 sm:py-8"
+          className="relative flex flex-1 flex-col items-center justify-center py-6 sm:py-8"
         >
+          {/* A soft pool of light just behind the content — keeps the text
+              readable without washing out the whole vista. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-1/2 h-[130%] -translate-y-1/2"
+            style={{
+              backgroundImage:
+                "radial-gradient(52% 46% at 50% 50%, rgba(255,246,232,0.58), rgba(255,246,232,0.2) 56%, rgba(255,246,232,0) 80%)",
+            }}
+          />
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}

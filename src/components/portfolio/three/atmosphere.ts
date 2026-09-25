@@ -320,6 +320,70 @@ export function createDeer(color: string, buck = false) {
 }
 
 /**
+ * A small rabbit that idles near the road, twitches its ears and hops a short
+ * beat every few seconds. Cheap (six primitives), reads at a glance.
+ */
+export function createRabbit(color: string) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color });
+  const paws = new THREE.MeshLambertMaterial({ color: "#5c4a3a" });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), mat);
+  body.scale.set(1.15, 0.85, 0.8);
+  body.position.y = 0.2;
+  group.add(body);
+
+  const rump = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), mat);
+  rump.position.set(-0.2, 0.22, 0);
+  group.add(rump);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), mat);
+  head.position.set(0.24, 0.3, 0);
+  group.add(head);
+
+  for (const x of [0.14, -0.14]) {
+    const ear = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.2, 3, 6), mat);
+    ear.position.set(0.26, 0.5, x * 0.6);
+    ear.rotation.z = x > 0 ? -0.18 : -0.32;
+    group.add(ear);
+  }
+
+  const tail = new THREE.Mesh(
+    new THREE.SphereGeometry(0.07, 8, 6),
+    new THREE.MeshLambertMaterial({ color: "#f3e7d7" }),
+  );
+  tail.position.set(-0.3, 0.22, 0);
+  group.add(tail);
+
+  for (const [x, z] of [
+    [0.12, 0.09],
+    [0.12, -0.09],
+    [-0.14, 0.1],
+    [-0.14, -0.1],
+  ]) {
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), paws);
+    paw.position.set(x, 0.07, z);
+    paw.scale.set(1.4, 0.7, 1);
+    group.add(paw);
+  }
+
+  return {
+    group,
+    update(time: number, phase: number, reducedMotion: boolean) {
+      if (reducedMotion) return;
+      // Rest for most of the cycle, then two or three quick hops.
+      const cycle = (time * 0.4 + phase) % 9;
+      const hop = cycle > 7.2 ? Math.abs(Math.sin((cycle - 7.2) * Math.PI * 5)) : 0;
+      group.position.y = hop * 0.34;
+      group.rotation.x = -hop * 0.22;
+      // An occasional ear flick while idle.
+      const twitch = Math.sin(time * 2.3 + phase * 3) > 0.96 ? 0.35 : 0;
+      group.rotation.z = twitch;
+    },
+  };
+}
+
+/**
  * Smooth rolling hills as a single shaped silhouette wall.
  *
  * Stacked cones read as spikes; a wall whose top edge is a sum of slow sine

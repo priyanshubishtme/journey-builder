@@ -9,6 +9,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
+import { useSpring } from "framer-motion";
 import { useRef, useState } from "react";
 
 const COUNT = journeyScenes.length;
@@ -32,19 +33,36 @@ function ScenePanel({
   index: number;
   progress: MotionValue<number>;
 }) {
-  const p = useTransform(progress, (value) => {
-    const raw = value * COUNT - index;
-    const sign = Math.sign(raw);
-    return (sign * Math.max(0, Math.abs(raw) - DWELL)) / (1 - DWELL);
-  });
-  const x = useTransform(p, [-1, 0, 1], ["40%", "0%", "-40%"]);
-  const opacity = useTransform(p, [-1, -0.32, 0.32, 1], [0, 1, 1, 0]);
-  const scale = useTransform(p, [-1, 0, 1], [0.95, 1, 0.95]);
-  const y = useTransform(p, [-1, 0, 1], [18, 0, 18]);
+  // Spring-smoothed so hand-scroll jitter never makes panels snap.
+  const p = useSpring(
+    useTransform(progress, (value) => {
+      const raw = value * COUNT - index;
+      const sign = Math.sign(raw);
+      return (sign * Math.max(0, Math.abs(raw) - DWELL)) / (1 - DWELL);
+    }),
+    { stiffness: 120, damping: 26, mass: 0.9 },
+  );
+  const x = useTransform(p, [-1, 0, 1], ["46%", "0%", "-46%"]);
+  const opacity = useTransform(p, [-1, -0.35, 0.35, 1], [0, 1, 1, 0]);
+  const scale = useTransform(p, [-1, 0, 1], [0.9, 1, 0.9]);
+  const y = useTransform(p, [-1, 0, 1], [30, 0, 30]);
+  // A gentle 3D swing: panels arrive turned toward the road, leave turning
+  // away, and sit flat while centred.
+  const rotateY = useTransform(p, [-1, 0, 1], [14, 0, -14]);
+  const rotateX = useTransform(p, [-1, 0, 1], [6, 0, -6]);
 
   return (
     <motion.div
-      style={{ x, opacity, scale, y, willChange: "transform, opacity" }}
+      style={{
+        x,
+        opacity,
+        scale,
+        y,
+        rotateY,
+        rotateX,
+        transformPerspective: 1100,
+        willChange: "transform, opacity",
+      }}
       className="absolute inset-x-0 bottom-0"
     >
       <article className="border border-[#e6c9ae] bg-[#fff8ef]/96 p-4 shadow-[0_30px_70px_-40px_rgba(43,26,42,0.85)] backdrop-blur-sm sm:p-5">
