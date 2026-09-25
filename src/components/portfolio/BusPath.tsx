@@ -1,4 +1,5 @@
 import { routeStops } from "@/data/profile";
+import { Reveal } from "@/components/portfolio/Reveal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouteScene } from "@/components/portfolio/useRouteScene";
 import { cn } from "@/lib/utils";
@@ -7,11 +8,11 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 type Point = { x: number; y: number };
 
-const RAIL_X = 30;
+const RAIL_X = 26;
 const GUTTER_AMPLITUDE = 64;
 const LEAD = 70;
-const EDUCATION_TINT = "#ff9f45";
-const EXPERIENCE_TINT = "#d4466e";
+const EDUCATION_TINT = "#e07a2c";
+const EXPERIENCE_TINT = "#c33b63";
 
 /** Smooth vertical route through the measured stop positions. */
 function buildRoutePath(points: Point[]) {
@@ -33,7 +34,7 @@ function buildRoutePath(points: Point[]) {
 }
 
 /**
- * Section 02 — Route.
+ * Section 03 — Route.
  *
  * Education and experience as stops on one dotted bus route, with a 3D bus
  * riding the line: the card positions are measured from the DOM, converted
@@ -43,7 +44,7 @@ function buildRoutePath(points: Point[]) {
 export function BusPath() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const sceneHostRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
   const travelRef = useRef(0);
   const activeRef = useRef(0);
   const isMobile = useIsMobile();
@@ -106,7 +107,9 @@ export function BusPath() {
   const pathPoints: Point[] = [
     ...(stops.length ? [{ x: stops[0].x, y: Math.max(stops[0].y - LEAD, 8) }] : []),
     ...stops,
-    ...(stops.length ? [{ x: stops[stops.length - 1].x, y: stops[stops.length - 1].y + LEAD }] : []),
+    ...(stops.length
+      ? [{ x: stops[stops.length - 1].x, y: stops[stops.length - 1].y + LEAD }]
+      : []),
   ];
   const routePath = buildRoutePath(pathPoints);
   const stopPath = buildRoutePath(stops);
@@ -115,47 +118,22 @@ export function BusPath() {
 
   return (
     <section id="route" className="relative scroll-mt-20">
-      <div className="mx-auto w-full max-w-6xl px-5 pt-24 pb-8 sm:px-8">
-        <div className="flex items-end justify-between gap-6 border-b border-border pb-4">
-          <div>
-            <p className="label-mono text-clay">Section 02</p>
-            <h2 className="mt-3 font-display text-3xl tracking-[-0.02em] sm:text-4xl">
-              Education &amp; experience
-            </h2>
-          </div>
-          <p className="label-mono hidden max-w-xs text-right sm:block">
-            Every stop on one route
+      <div className="mx-auto w-full max-w-6xl px-5 pt-24 pb-12 sm:px-8">
+        <Reveal>
+          <h2 className="font-display text-4xl tracking-[-0.02em] sm:text-5xl">
+            Education &amp; experience
+          </h2>
+          <p className="mt-4 max-w-2xl lead">
+            The road so far, in the order it happened — school, university, then
+            the work I am doing now.
           </p>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center gap-6">
-          <span className="flex items-center gap-2">
-            <span
-              className="size-2.5 rotate-45"
-              style={{ backgroundColor: EDUCATION_TINT }}
-            />
-            <span className="label-mono">Education</span>
-          </span>
-          <span className="flex items-center gap-2">
-            <span
-              className="size-2.5 rotate-45"
-              style={{ backgroundColor: EXPERIENCE_TINT }}
-            />
-            <span className="label-mono">Experience</span>
-          </span>
-          <span className="label-mono ml-auto hidden sm:block">
-            The bus follows your scroll
-          </span>
-        </div>
+        </Reveal>
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-5 pb-24 sm:px-8">
         <div ref={wrapRef} className="relative">
           {/* 3D layer: tilted plane with the pins and the bus on the route */}
-          <div
-            ref={sceneHostRef}
-            className="pointer-events-none absolute inset-0 z-[2]"
-          />
+          <div ref={sceneHostRef} className="pointer-events-none absolute inset-0 z-[2]" />
 
           {/* Dotted route + travelled overlay */}
           {box.width > 0 && stops.length > 0 ? (
@@ -193,9 +171,10 @@ export function BusPath() {
           ) : null}
 
           {/* Stops */}
-          <div className="relative z-10 flex flex-col gap-10 md:grid md:grid-cols-2 md:gap-x-40 md:gap-y-6">
+          <div className="relative z-10 flex flex-col gap-12 md:grid md:grid-cols-2 md:gap-x-40 md:gap-y-16">
             {routeStops.map((stop, index) => {
-              const tint = index === 0 || index === 1 ? EDUCATION_TINT : EXPERIENCE_TINT;
+              const tint = index <= 1 ? EDUCATION_TINT : EXPERIENCE_TINT;
+              const isActive = index === activeStop;
               return (
                 <div
                   key={stop.id}
@@ -204,13 +183,15 @@ export function BusPath() {
                     index % 2 === 0 ? "md:col-start-1 md:justify-end" : "md:col-start-2",
                   )}
                 >
-                  <div
+                  <article
                     ref={(node) => {
                       cardRefs.current[index] = node;
                     }}
                     className={cn(
-                      "relative ml-16 w-full border border-border bg-card p-5 shadow-[0_20px_50px_-40px_rgba(43,26,42,0.8)] transition-colors duration-300 sm:p-6 md:ml-0 md:max-w-[26rem]",
-                      index === activeStop ? "border-[#f0703a]/60" : "hover:border-[#c9863f]/45",
+                      "relative ml-12 w-full border bg-card p-6 transition-colors duration-300 sm:p-7 md:ml-0 md:max-w-[26rem]",
+                      isActive
+                        ? "border-[#e07a2c]/60 shadow-[0_26px_60px_-44px_rgba(43,26,42,0.9)]"
+                        : "border-border hover:border-[#c9863f]/45",
                     )}
                   >
                     <span
@@ -221,27 +202,32 @@ export function BusPath() {
                       )}
                       style={{ backgroundColor: tint }}
                     />
-                    <div className="flex items-baseline justify-between gap-4">
-                      <p className="label-mono" style={{ color: tint }}>
-                        {stop.kind} · Stop {String(index + 1).padStart(2, "0")}
-                      </p>
-                      <p className="label-mono whitespace-nowrap">{stop.period}</p>
-                    </div>
-                    <h3 className="mt-3 font-display text-xl leading-6 tracking-[-0.01em] sm:text-2xl sm:leading-7">
+
+                    <p className="text-[13px] font-medium" style={{ color: tint }}>
+                      {stop.kind}
+                    </p>
+
+                    <h3 className="mt-3 font-display text-2xl leading-8 tracking-[-0.01em] text-[#33202c] sm:text-[26px] sm:leading-9">
                       {stop.title}
                     </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{stop.place}</p>
+
+                    <p className="mt-3 text-[15px] leading-6 text-[#6b4a52]">
+                      {stop.place}
+                      <span className="text-muted-foreground"> · {stop.period}</span>
+                    </p>
+
                     {stop.grade ? (
                       <p
-                        className="mt-4 bg-clip-text font-display text-3xl tracking-[-0.02em] text-transparent"
+                        className="mt-5 bg-clip-text font-display text-3xl tracking-[-0.02em] text-transparent"
                         style={{ backgroundImage: "linear-gradient(90deg, #f0703a, #d4466e)" }}
                       >
                         {stop.grade}
                       </p>
                     ) : null}
-                    <ul className="mt-4 space-y-2 border-t border-border pt-4 text-xs leading-5 text-muted-foreground sm:text-[13px] sm:leading-6">
+
+                    <ul className="mt-6 space-y-3 border-t border-border pt-6 text-[15px] leading-7 text-muted-foreground">
                       {stop.points.map((entry) => (
-                        <li key={entry} className="flex gap-2">
+                        <li key={entry} className="flex gap-3">
                           <span aria-hidden="true" style={{ color: tint }}>
                             —
                           </span>
@@ -249,7 +235,7 @@ export function BusPath() {
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </article>
                 </div>
               );
             })}

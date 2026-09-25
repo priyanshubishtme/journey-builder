@@ -152,10 +152,10 @@ export function AssetPlaceholder({
           <Artwork seed={label ?? "photo"} tone={tone} />
           <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_120%,rgba(43,26,42,0.55),transparent_60%)]" />
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#fff3e2] drop-shadow-[0_1px_2px_rgba(43,26,42,0.7)]">
+            <span className="text-[12px] font-medium leading-5 text-[#fff3e2] drop-shadow-[0_1px_2px_rgba(43,26,42,0.75)]">
               {label ?? "Photo"}
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#ffe6c4]/80">
+            <span className="shrink-0 text-[12px] leading-5 text-[#ffe6c4]/85 drop-shadow-[0_1px_2px_rgba(43,26,42,0.75)]">
               + photo
             </span>
           </div>

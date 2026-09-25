@@ -137,6 +137,11 @@
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
   }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "kern", "liga", "calt";
@@ -154,11 +159,22 @@
 }
 
 @layer components {
-  /* Tiny uppercase label used for section numbering and eyebrows. */
-  .label-mono {
-    @apply font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground;
+  /* Readable type scale — nothing below 13px, nothing shouty in caps. */
+  .eyebrow {
+    @apply text-[13px] font-medium tracking-[0.01em] text-primary;
   }
-  /* Hairline divider that stays crisp on the paper background. */
+  .meta {
+    @apply text-[13px] tracking-[0.01em] text-muted-foreground;
+  }
+  .counter {
+    @apply font-mono text-[13px] tabular-nums text-muted-foreground;
+  }
+  .lead {
+    @apply text-[15px] leading-7 text-muted-foreground sm:text-[16px];
+  }
+  .body-copy {
+    @apply text-[15px] leading-7 text-muted-foreground;
+  }
   .rule {
     @apply h-px w-full bg-border;
   }

@@ -5,7 +5,8 @@ import {
   createBirdFlock,
   createCloudField,
   createDust,
-  createRidgeLayer,
+  createMistPatch,
+  createSilhouetteWall,
   createSkyDome,
   createSun,
 } from "./three/atmosphere";
@@ -13,10 +14,10 @@ import { createBus } from "./three/createBus";
 import { createSkySampler, seededRandom } from "./three/palette";
 
 /**
- * The hero's living backdrop: a sunset vista with layered ridges, a low sun,
- * drifting clouds and birds, and a small bus driving away up the road on the
- * left. It breathes on its own and leans with the pointer, then sinks toward
- * dusk as the page scrolls out of the hero.
+ * The hero's living backdrop: a valley at golden hour — rolling hills fading
+ * into mist, a low sun behind them, a forest either side of the road, and a
+ * small bus driving away up it. It breathes on its own, leans with the
+ * pointer, and slides toward dusk as the page scrolls out of the hero.
  */
 
 const ROAD_ANGLE = -0.055;
@@ -48,7 +49,7 @@ export function useHeroScene(
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isWide ? 2 : 1.5));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.06;
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
     renderer.domElement.style.display = "block";
@@ -65,19 +66,15 @@ export function useHeroScene(
     key.position.set(-80, 60, -60);
     scene.add(key);
 
-    // Ground + the road the bus drives away on.
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(2200, 2400),
-      new THREE.MeshLambertMaterial({ color: "#e7bf92" }),
-    );
+    // --- valley floor and road ----------------------------------------------
+    const groundMaterial = new THREE.MeshLambertMaterial({ color: "#e3bd8e" });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(2600, 2800), groundMaterial);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.set(0, -0.02, -400);
+    ground.position.set(0, -0.02, -500);
     scene.add(ground);
 
-    const road = new THREE.Mesh(
-      new THREE.PlaneGeometry(8.6, 760),
-      new THREE.MeshLambertMaterial({ color: "#a97f6e" }),
-    );
+    const roadMaterial = new THREE.MeshLambertMaterial({ color: "#9d7566" });
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 760), roadMaterial);
     road.rotation.x = -Math.PI / 2;
     road.rotation.z = ROAD_ANGLE;
     road.position.set(ROAD_ORIGIN.x, 0.01, ROAD_ORIGIN.z - 360);
@@ -97,60 +94,129 @@ export function useHeroScene(
       scene.add(dash);
     }
 
-    // Ridges running across the horizon.
-    const ridges = [
-      createRidgeLayer({
-        count: 26,
+    // --- rolling hills, four depths -----------------------------------------
+    // Fog is on: each ridge fades a little further into the haze than the one
+    // in front of it, which is what reads as depth rather than stacked paper.
+    const hills = [
+      createSilhouetteWall({
         axis: "x",
-        from: -900,
-        to: 900,
-        offset: -400,
-        minHeight: 40,
-        maxHeight: 86,
-        minRadius: 60,
-        maxRadius: 120,
-        color: "#8d4a33",
-        random,
+        span: 2400,
+        distance: 320,
+        baseHeight: 22,
+        amplitude: 18,
+        color: "#a8663f",
+        seed: 11,
+        fog: true,
       }),
-      createRidgeLayer({
-        count: 22,
+      createSilhouetteWall({
         axis: "x",
-        from: -1100,
-        to: 1100,
-        offset: -620,
-        minHeight: 78,
-        maxHeight: 150,
-        minRadius: 110,
-        maxRadius: 200,
+        span: 3000,
+        distance: 520,
+        baseHeight: 38,
+        amplitude: 26,
+        color: "#8d4a48",
+        seed: 29,
+        fog: true,
+      }),
+      createSilhouetteWall({
+        axis: "x",
+        span: 3600,
+        distance: 780,
+        baseHeight: 58,
+        amplitude: 36,
         color: "#6d3a55",
-        random,
+        seed: 47,
+        fog: true,
       }),
-      createRidgeLayer({
-        count: 18,
+      createSilhouetteWall({
         axis: "x",
-        from: -1400,
-        to: 1400,
-        offset: -880,
-        minHeight: 130,
-        maxHeight: 240,
-        minRadius: 180,
-        maxRadius: 300,
-        color: "#4a2b4c",
-        random,
+        span: 4400,
+        distance: 1060,
+        baseHeight: 88,
+        amplitude: 52,
+        color: "#4c2c52",
+        seed: 71,
+        fog: true,
       }),
     ];
-    for (const ridge of ridges) {
-      ridge.material.fog = false;
-      scene.add(ridge.mesh);
+    for (const hill of hills) scene.add(hill.mesh);
+
+    // --- forest either side of the road --------------------------------------
+    const makeTreeBand = (count: number, zNear: number, zFar: number, tint: string, scale: number) => {
+      const items: { x: number; z: number; s: number }[] = [];
+      let guard = 0;
+      while (items.length < count && guard < count * 12) {
+        guard += 1;
+        const x = -320 + random() * 640;
+        // Keep the road corridor clear.
+        if (Math.abs(x - ROAD_ORIGIN.x) < 18) continue;
+        items.push({ x, z: zNear + random() * (zFar - zNear), s: (0.8 + random() * 1.5) * scale });
+      }
+
+      const trunkGeometry = new THREE.CylinderGeometry(0.18, 0.26, 3, 6);
+      const canopyGeometry = new THREE.ConeGeometry(1.8, 5.6, 7);
+      const trunkMaterial = new THREE.MeshLambertMaterial({ color: "#4a2f2f" });
+      const canopyMaterial = new THREE.MeshLambertMaterial({ color: tint });
+
+      const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, items.length);
+      const canopies = new THREE.InstancedMesh(canopyGeometry, canopyMaterial, items.length);
+      trunks.frustumCulled = false;
+      canopies.frustumCulled = false;
+
+      const matrix = new THREE.Matrix4();
+      const quaternion = new THREE.Quaternion();
+      const position = new THREE.Vector3();
+      const scaleVector = new THREE.Vector3();
+      const up = new THREE.Vector3(0, 1, 0);
+
+      items.forEach((item, index) => {
+        quaternion.setFromAxisAngle(up, random() * Math.PI * 2);
+        scaleVector.setScalar(item.s);
+
+        position.set(item.x, 1.5 * item.s, item.z);
+        matrix.compose(position, quaternion, scaleVector);
+        trunks.setMatrixAt(index, matrix);
+
+        position.set(item.x, 5.4 * item.s, item.z);
+        matrix.compose(position, quaternion, scaleVector);
+        canopies.setMatrixAt(index, matrix);
+      });
+      trunks.instanceMatrix.needsUpdate = true;
+      canopies.instanceMatrix.needsUpdate = true;
+
+      scene.add(trunks, canopies);
+      return canopyMaterial;
+    };
+
+    const nearCanopies = makeTreeBand(isWide ? 120 : 60, -70, -170, "#39512f", 1);
+    const farCanopies = makeTreeBand(isWide ? 150 : 70, -180, -330, "#4a4358", 1.1);
+
+    // --- mist between the layers --------------------------------------------
+    // Planes are left facing the viewer with a small yaw, and sit low so they
+    // pool in the valley instead of floating across the ridges.
+    const mistMaterials: THREE.MeshBasicMaterial[] = [];
+    const mistPatches: THREE.Mesh[] = [];
+    for (let i = 0; i < 13; i += 1) {
+      const patch = createMistPatch(
+        i % 3 === 0 ? 380 : 260,
+        "#ffe2c0",
+        0.05 + random() * 0.05,
+      );
+      patch.position.set(-280 + random() * 560, 6 + random() * 16, -150 - random() * 520);
+      patch.rotation.y = (random() - 0.5) * 0.5;
+      mistMaterials.push(patch.material as THREE.MeshBasicMaterial);
+      mistPatches.push(patch);
+      scene.add(patch);
     }
 
-    const skyDome = createSkyDome(700);
+    // --- sky and weather -----------------------------------------------------
+    const skyDome = createSkyDome(1200);
     scene.add(skyDome.mesh);
-    const sun = createSun(520);
+    const sun = createSun(900);
     scene.add(sun.group);
-    const clouds = createCloudField(isWide ? 14 : 8, random);
+    const clouds = createCloudField(isWide ? 16 : 8, random);
     scene.add(clouds.group);
-    const birds = createBirdFlock(isWide ? 7 : 4, random);
+    const birds = createBirdFlock(isWide ? 8 : 4, random);
     scene.add(birds.group);
     const dust = createDust(isWide ? 110 : 60, random);
     scene.add(dust.points);
@@ -159,7 +225,9 @@ export function useHeroScene(
     const bus = busModel.group;
     scene.add(bus);
 
-    scene.fog = new THREE.Fog("#ffc79a", 80, 520);
+    // Wide, gentle haze so the ground melts into the horizon and the far
+    // ridges sit back in the air instead of reading as flat cut-outs.
+    scene.fog = new THREE.Fog("#f2b183", 150, 1700);
 
     let aspect = 1;
     const resize = () => {
@@ -168,14 +236,13 @@ export function useHeroScene(
       renderer.setSize(width, height, false);
       aspect = width / height;
       camera.aspect = aspect;
-      camera.fov = aspect < 0.9 ? 64 : aspect < 1.5 ? 56 : 52;
+      camera.fov = aspect < 0.9 ? 66 : aspect < 1.5 ? 56 : 52;
       camera.updateProjectionMatrix();
     };
     resize();
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(host);
 
-    // Pointer parallax.
     let pointerX = 0;
     let pointerY = 0;
     const onPointerMove = (event: PointerEvent) => {
@@ -186,7 +253,7 @@ export function useHeroScene(
 
     const focus = new THREE.Vector3(0, 4.2, 0);
     const desiredFocus = new THREE.Vector3();
-    const skyTint = new THREE.Color();
+    const scratch = new THREE.Color();
 
     let elapsed = 0;
     let last = performance.now();
@@ -197,12 +264,11 @@ export function useHeroScene(
       last = now;
       elapsed += reducedMotion ? 0 : dt;
 
-      // The hero starts in golden hour and slides toward sunset as it leaves.
-      const progress = Math.min(Math.max(0.5 + progressRef.current * 0.34, 0), 1);
+      // Golden hour that deepens toward sunset as the hero scrolls away.
+      const progress = Math.min(Math.max(0.28 + progressRef.current * 0.4, 0), 1);
       const current = sampler.sample(progress);
       const time = elapsed;
 
-      // Bus driving away along the road, fading out before it wraps.
       const s = ((time * 7.5) % BUS_TRAVEL + BUS_TRAVEL) % BUS_TRAVEL;
       bus.position.set(
         ROAD_ORIGIN.x - Math.sin(ROAD_ANGLE) * s,
@@ -210,23 +276,22 @@ export function useHeroScene(
         ROAD_ORIGIN.z - Math.cos(ROAD_ANGLE) * s,
       );
       bus.rotation.y = ROAD_ANGLE + (reducedMotion ? 0 : Math.sin(time * 0.7) * 0.01);
-      for (const wheel of busModel.wheels) wheel.rotation.x = -s / 0.55;
+      for (const wheel of busModel.wheels) wheel.rotation.x = -s / 0.56;
       const fadeStart = BUS_TRAVEL * 0.74;
       const fade = Math.min(Math.max((BUS_TRAVEL - s) / (BUS_TRAVEL - fadeStart), 0), 1);
       bus.scale.setScalar(fade * fade);
       bus.visible = fade > 0.02;
 
-      // Pointer-leaning camera with a slow idle drift.
-      const targetX = reducedMotion ? 0 : pointerX * 3.4 + Math.sin(time * 0.2) * 0.6;
+      const targetX = reducedMotion ? 0 : pointerX * 3.6 + Math.sin(time * 0.2) * 0.6;
       const targetY = 4.5 - (reducedMotion ? 0 : pointerY * 1.4) + Math.sin(time * 0.34) * 0.2;
       camera.position.x += (targetX - camera.position.x) * 0.04;
       camera.position.y += (targetY - camera.position.y) * 0.04;
-      camera.position.z = 20 + progressRef.current * 22;
+      camera.position.z = 20 + progressRef.current * 26;
 
       desiredFocus.set(
         pointerX * 1.4,
-        4.2 - progressRef.current * 5.5,
-        -30 - progressRef.current * 60,
+        4.2 - progressRef.current * 5,
+        -40 - progressRef.current * 70,
       );
       focus.lerp(desiredFocus, 0.05);
       camera.lookAt(focus);
@@ -234,27 +299,34 @@ export function useHeroScene(
       skyDome.mesh.position.copy(camera.position);
       skyDome.update(current);
       sun.update(current, camera.position);
-      sun.group.position.x = 130;
-      sun.group.position.y = 20 + current.sunHeight * 150;
-      clouds.update(dt, camera.position.z, skyTint.copy(current.mid).lerp(current.sun, 0.35));
+      sun.group.position.set(150, 24 + current.sunHeight * 190, camera.position.z - 820);
+      clouds.update(dt, camera.position.z, scratch.copy(current.mid).lerp(current.sun, 0.35));
       birds.update(time, camera.position.z);
       dust.points.position.set(0, 0, camera.position.z);
-      dust.update(dt, 0.35);
+      dust.update(dt, 0.3);
 
-      ground.material.color.copy(current.ground);
-      (road.material as THREE.MeshLambertMaterial).color
-        .copy(current.road)
-        .lerp(current.ridgeNear, 0.35);
+      groundMaterial.color.copy(current.ground);
+      roadMaterial.color.copy(current.road).lerp(current.ridgeNear, 0.3);
       laneMaterial.color.copy(current.rail);
-      ridges[0].material.color.copy(current.ridgeNear);
-      ridges[1].material.color.copy(current.ridgeMid);
-      ridges[2].material.color.copy(current.ridgeFar);
-      busModel.glass.color.copy(current.sun).lerp(skyTint.set("#fff3e2"), 0.4);
+      hills[0].material.color.copy(current.ridgeNear).lerp(current.foliage, 0.22);
+      hills[1].material.color.copy(current.ridgeNear).lerp(current.ridgeMid, 0.55);
+      hills[2].material.color.copy(current.ridgeMid);
+      hills[3].material.color.copy(current.ridgeMid).lerp(current.ridgeFar, 0.75);
+      nearCanopies.color.copy(current.foliage).lerp(scratch.set("#1f2a1d"), 0.45);
+      farCanopies.color.copy(current.ridgeMid).lerp(current.ridgeFar, 0.35);
+      for (let i = 0; i < mistMaterials.length; i += 1) {
+        mistMaterials[i].color.copy(current.horizon).lerp(scratch.set("#fff0dc"), 0.5);
+        // Drift the haze slowly sideways so the valley breathes.
+        mistPatches[i].position.x += reducedMotion ? 0 : dt * 1.6;
+        if (mistPatches[i].position.x > 300) mistPatches[i].position.x = -300;
+      }
       hemi.color.copy(current.hemiSky);
       hemi.groundColor.copy(current.hemiGround);
+      hemi.intensity = 0.7 + current.ambient * 0.4;
       key.color.copy(current.keyColor);
-      key.intensity = current.key * 1.1;
+      key.intensity = current.key * 1.05;
       ambient.intensity = current.ambient * 0.9;
+      busModel.glass.color.copy(current.sun).lerp(scratch.set("#fff3e2"), 0.4);
       if (scene.fog) scene.fog.color.copy(current.horizon);
 
       renderer.render(scene, camera);

@@ -2,8 +2,8 @@ import * as THREE from "three";
 import {
   SUNSET,
   createGlowTexture,
+  seededRandom,
   type SkySample,
-  type seededRandom,
 } from "./palette";
 
 /**
@@ -243,6 +243,173 @@ export function createBirdFlock(count: number, random: Random) {
       group.position.z = cameraZ;
     },
   };
+}
+
+/**
+ * Smooth rolling hills as a single shaped silhouette wall.
+ *
+ * Stacked cones read as spikes; a wall whose top edge is a sum of slow sine
+ * waves reads as landscape. `axis` decides which way it runs: "x" across the
+ * view (hero), "z" alongside the road (journey).
+ */
+export function createSilhouetteWall({
+  axis,
+  span,
+  center = 0,
+  distance,
+  segments = 140,
+  baseHeight,
+  amplitude,
+  color,
+  seed,
+  fillTo = -60,
+  fog = false,
+}: {
+  axis: "x" | "z";
+  span: number;
+  center?: number;
+  distance: number;
+  segments?: number;
+  baseHeight: number;
+  amplitude: number;
+  color: string;
+  seed: number;
+  fillTo?: number;
+  /** Let the scene fog haze distant ridges. Off for close, road side hills. */
+  fog?: boolean;
+}) {
+  const random = seededRandom(seed);
+  const p1 = random() * Math.PI * 2;
+  const p2 = random() * Math.PI * 2;
+  const p3 = random() * Math.PI * 2;
+  const f1 = 0.9 + random() * 0.7;
+  const f2 = 2.2 + random() * 1.3;
+  const f3 = 4.6 + random() * 2.4;
+
+  const positions = new Float32Array((segments + 1) * 6);
+  const indices: number[] = [];
+
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    const along = center + (t - 0.5) * span;
+    const height =
+      baseHeight +
+      amplitude *
+        (0.5 +
+          0.34 * Math.sin(t * Math.PI * f1 + p1) +
+          0.2 * Math.sin(t * Math.PI * f2 + p2) +
+          0.1 * Math.sin(t * Math.PI * f3 + p3));
+
+    const offset = i * 6;
+    if (axis === "x") {
+      positions[offset] = along;
+      positions[offset + 1] = height;
+      positions[offset + 2] = -distance;
+      positions[offset + 3] = along;
+      positions[offset + 4] = fillTo;
+      positions[offset + 5] = -distance;
+    } else {
+      positions[offset] = distance;
+      positions[offset + 1] = height;
+      positions[offset + 2] = along;
+      positions[offset + 3] = distance;
+      positions[offset + 4] = fillTo;
+      positions[offset + 5] = along;
+    }
+
+    if (i < segments) {
+      const a = i * 2;
+      indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  const material = new THREE.MeshLambertMaterial({
+    color,
+    side: THREE.DoubleSide,
+    flatShading: false,
+  });
+  material.fog = fog;
+
+  return { mesh: new THREE.Mesh(geometry, material), material };
+}
+
+/** Warm fireflies drifting beside the road as the light goes. */
+export function createFireflies(count: number, random: Random) {
+  const base = new Float32Array(count * 3);
+  const phase = new Float32Array(count);
+  const speed = new Float32Array(count);
+  const radius = new Float32Array(count);
+
+  for (let i = 0; i < count; i += 1) {
+    base[i * 3] = -6 + random() * 40;
+    base[i * 3 + 1] = 0.6 + random() * 4.4;
+    base[i * 3 + 2] = -random() * 160;
+    phase[i] = random() * Math.PI * 2;
+    speed[i] = 0.4 + random() * 1.1;
+    radius[i] = 0.6 + random() * 2.2;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(base.slice(), 3));
+  const points = new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      map: createGlowTexture("rgba(255,236,180,1)", "rgba(255,196,107,0.35)"),
+      color: "#ffd98a",
+      size: 1.4,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    }),
+  );
+  points.frustumCulled = false;
+  const attribute = geometry.attributes.position as THREE.BufferAttribute;
+
+  return {
+    points,
+    update(time: number, cameraZ: number, intensity: number) {
+      for (let i = 0; i < count; i += 1) {
+        const wobble = time * speed[i] + phase[i];
+        attribute.setXYZ(
+          i,
+          base[i * 3] + Math.cos(wobble) * radius[i],
+          base[i * 3 + 1] + Math.sin(wobble * 1.7) * 0.5,
+          base[i * 3 + 2] + Math.sin(wobble * 0.8) * radius[i],
+        );
+      }
+      attribute.needsUpdate = true;
+      (points.material as THREE.PointsMaterial).opacity = intensity;
+      points.visible = intensity > 0.02;
+      points.position.z = cameraZ;
+    },
+  };
+}
+
+/**
+ * Soft haze patch. The plane is left facing +Z so callers can orient it: the
+ * journey passes it a yaw so it faces the roadside camera, the hero leaves it
+ * facing the viewer.
+ */
+export function createMistPatch(size: number, color: string, opacity: number) {
+  return new THREE.Mesh(
+    new THREE.PlaneGeometry(size, size * 0.22),
+    new THREE.MeshBasicMaterial({
+      map: createGlowTexture("rgba(255,248,236,0.55)", "rgba(255,222,186,0.18)"),
+      color,
+      transparent: true,
+      opacity,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    }),
+  );
 }
 
 /** Layered mountain ridges, static and cheap (one instanced draw per layer). */
