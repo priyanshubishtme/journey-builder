@@ -537,8 +537,9 @@ export function useJourneyScene(
 
       // Camera rides the same eased stop curve, so reframes happen between
       // stops and the framing holds still while the bus does. ceil − 1 makes a
-      // parked bus land fully on its own framing instead of the next one.
-      const stopIndex = Math.min(Math.ceil(stops) - 1, SHOTS.length - 2);
+      // parked bus land fully on its own framing instead of the next one;
+      // clamped so the first stop never indexes SHOTS[-1].
+      const stopIndex = Math.min(Math.max(Math.ceil(stops) - 1, 0), SHOTS.length - 2);
       const blend = Math.min(Math.max(stops - stopIndex, 0), 1);
       const a = SHOTS[stopIndex];
       const b = SHOTS[stopIndex + 1];
