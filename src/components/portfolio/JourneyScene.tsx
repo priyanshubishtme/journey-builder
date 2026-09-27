@@ -65,7 +65,13 @@ function ScenePanel({
       }}
       className="absolute inset-x-0 bottom-0"
     >
-      <article className="border border-[#e6c9ae] bg-[#fff8ef]/96 p-4 shadow-[0_30px_70px_-40px_rgba(43,26,42,0.85)] backdrop-blur-sm sm:p-5">
+      <article className="relative border border-[#ffd9a8]/45 bg-[#fff8ef]/90 p-4 shadow-[0_34px_90px_-42px_rgba(43,26,42,0.9),inset_0_1px_0_rgba(255,244,224,0.9)] backdrop-blur-md sm:p-5">
+        {/* Warm edge light on the sunlit side of the card */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 w-px"
+          style={{ backgroundImage: "linear-gradient(to bottom, transparent, #ffb46a 35%, #d4466e 85%, transparent)" }}
+        />
         <AssetPlaceholder
           src={scene.image}
           label={`Scene image · ${scene.title}`}

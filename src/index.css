@@ -175,7 +175,7 @@
     @apply text-[13px] font-medium tracking-[0.02em] text-primary uppercase;
   }
   .meta {
-    @apply text-[13px] tracking-[0.03em] text-muted-foreground text-uppercase;
+    @apply text-[13px] tracking-[0.03em] text-muted-foreground uppercase;
   }
   .counter {
     @apply font-mono text-[13px] tabular-nums text-muted-foreground;

@@ -13,7 +13,7 @@ import {
   createSun,
 } from "./three/atmosphere";
 import { createBus } from "./three/createBus";
-import { createSkySampler, seededRandom } from "./three/palette";
+import { createGlowTexture, createSkySampler, seededRandom } from "./three/palette";
 
 /**
  * The hero's living backdrop, composed like a landscape painting:
@@ -371,6 +371,41 @@ export function useHeroScene(
     const bus = busModel.group;
     scene.add(bus);
 
+    // --- warm light pools on the meadow — echoes of lit windows and lamps ---
+    const poolGlow = createGlowTexture("rgba(255,224,170,0.95)", "rgba(255,180,90,0.35)");
+    const lightPools: THREE.Mesh[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const pool = new THREE.Mesh(
+        new THREE.PlaneGeometry(14 + random() * 10, 14 + random() * 10),
+        new THREE.MeshBasicMaterial({
+          map: poolGlow,
+          color: "#ffc46b",
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
+      );
+      pool.rotation.x = -Math.PI / 2;
+      pool.position.set(-40 + random() * 120, 0.05, -60 - random() * 180);
+      scene.add(pool);
+      lightPools.push(pool);
+    }
+
+    // --- a thin warm ribbon along the far ridge — the day's last light ------
+    const markerMaterial = new THREE.MeshBasicMaterial({
+      color: "#ffd99a",
+      transparent: true,
+      opacity: 0.5,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    const marker = new THREE.Mesh(new THREE.PlaneGeometry(900, 2.2), markerMaterial);
+    marker.rotation.x = -Math.PI / 2;
+    marker.position.set(40, 30, -1000);
+    scene.add(marker);
+
     // Wide, gentle haze; greens roll off into the golden horizon.
     scene.fog = new THREE.Fog("#f6c48e", 170, 1800);
 
@@ -414,7 +449,8 @@ export function useHeroScene(
       const progress = Math.min(Math.max(0.3 + progressRef.current * 0.34, 0), 1);
       const current = sampler.sample(progress);
 
-      // Bus heading up the valley to the left, shrinking into the light.
+      // Bus heading up the valley to the left, shrinking into the light —
+      // then returning a beat later, so the valley keeps telling its story.
       const s = ((time * 7.5) % BUS_TRAVEL + BUS_TRAVEL) % BUS_TRAVEL;
       bus.position.set(
         ROAD_ORIGIN.x - Math.sin(ROAD_ANGLE) * s,
@@ -424,9 +460,13 @@ export function useHeroScene(
       bus.rotation.y = ROAD_ANGLE + (reducedMotion ? 0 : Math.sin(time * 0.7) * 0.01);
       for (const wheel of busModel.wheels) wheel.rotation.x = -s / 0.56;
       const fadeStart = BUS_TRAVEL * 0.74;
-      const fade = Math.min(Math.max((BUS_TRAVEL - s) / (BUS_TRAVEL - fadeStart), 0), 1);
-      bus.scale.setScalar(fade * fade);
-      bus.visible = fade > 0.02;
+      const travelFade = Math.min(Math.max((BUS_TRAVEL - s) / (BUS_TRAVEL - fadeStart), 0), 1);
+      // A slow second rhythm layered on top: the bus breathes back into the
+      // frame every cycle instead of leaving forever.
+      const returnBeat = 0.55 + Math.sin(time * 0.09) * 0.45;
+      const fade = travelFade * returnBeat;
+      bus.scale.setScalar(Math.max(fade, 0.001));
+      bus.visible = fade > 0.04;
 
   // Rabbits idle and hop near the meadow edge.
       for (let i = 0; i < rabbits.length; i += 1) {
@@ -486,13 +526,26 @@ export function useHeroScene(
         mistPatches[i].position.x += reducedMotion ? 0 : dt * 1.2;
         if (mistPatches[i].position.x > 300) mistPatches[i].position.x = -300;
       }
+      // Warm pools glow brighter as the evening settles in.
+      for (let i = 0; i < lightPools.length; i += 1) {
+        (lightPools[i].material as THREE.MeshBasicMaterial).opacity = reducedMotion
+          ? 0.16
+          : 0.12 + current.lamp * 0.3 + Math.sin(time * 0.4 + i * 1.7) * 0.05;
+        (lightPools[i].material as THREE.MeshBasicMaterial).color
+          .copy(current.windows)
+          .lerp(scratch.set("#ffc46b"), 0.3);
+      }
+      // The ridge ribbon takes the sky's last light.
+      markerMaterial.color.copy(current.marker);
+      markerMaterial.opacity = reducedMotion ? 0.3 : 0.22 + current.lamp * 0.35;
+
       hemi.color.copy(current.hemiSky);
       hemi.groundColor.copy(current.hemiGround);
       hemi.intensity = 0.75 + current.ambient * 0.35;
       key.color.copy(current.keyColor);
       key.intensity = current.key;
       ambient.intensity = current.ambient * 0.9;
-      busModel.glass.color.copy(current.sun).lerp(scratch.set("#fff3e2"), 0.4);
+      busModel.glass.color.copy(current.windows).lerp(scratch.set("#fff3e2"), 0.4);
       if (scene.fog) scene.fog.color.copy(current.fog).lerp(scratch.set("#f6c48e"), 0.65);
 
       renderer.render(scene, camera);

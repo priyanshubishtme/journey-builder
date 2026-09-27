@@ -588,22 +588,35 @@ export function useJourneyScene(
       // Low and ahead of the bus, so the drive reads as heading into the sun.
       sun.group.position.set(camera.position.x - 700, 30 + current.sunHeight * 200, camera.position.z - 110);
       clouds.update(dt, camera.position.z, current.mid);
+      // A faint warm haze breathes in from the horizon as the sun drops.
+      const horizonGlow = 0.5 + current.sunHeight * 0.5;
+      clouds.group.children.forEach((cloud, index) => {
+        (cloud as THREE.Sprite).material.opacity =
+          0.16 + horizonGlow * 0.14 * (1 - (index % 3) * 0.3);
+      });
       stars.update(current, camera.position);
       birds.update(time, camera.position.z);
       fireflies.update(time, camera.position.z, Math.min(1, current.lamp * 0.9 + 0.1));
       dust.points.position.set(0, 0, camera.position.z);
       dust.update(dt, 0.3 + current.lamp * 0.5);
 
-      // Lamps, windows and headlights respond to the light.
+      // Lamps, windows and headlights respond to the light. The glazing is
+      // kept warm — the cabin reads as lit from inside, the story's anchor.
       headMaterial.opacity = 0.15 + current.lamp * 0.95;
       headMaterial.color.copy(current.sun).lerp(scratchColor.set(SUNSET.gold), 0.55);
       poolMaterial.opacity = current.lamp * 0.5;
-      busModel.glass.opacity = 0.2 + current.lamp * 0.2;
-      busModel.glass.color.copy(scratchColor.set("#8d7a86")).lerp(current.sun, 0.3 + current.lamp * 0.45);
-      busModel.interior.color.copy(scratchColor.set("#c98a5f")).lerp(current.sun, 0.25 + current.lamp * 0.6);
+      busModel.glass.opacity = 0.24 + current.lamp * 0.22;
+      busModel.glass.color
+        .copy(current.windows)
+        .lerp(scratchColor.set("#fff1d8"), 0.35 - current.lamp * 0.2);
+      busModel.interior.color
+        .copy(scratchColor.set("#e8a86a"))
+        .lerp(current.sun, 0.2 + current.lamp * 0.55);
       beams.setIntensity(current.headlight);
-      (poolAhead.material as THREE.MeshBasicMaterial).opacity = current.headlight * 0.45;
-      (poolNear.material as THREE.MeshBasicMaterial).opacity = current.headlight * 0.55;
+      (poolAhead.material as THREE.MeshBasicMaterial).opacity = current.headlight * 0.5;
+      (poolNear.material as THREE.MeshBasicMaterial).opacity = current.headlight * 0.6;
+      // Road warms faintly where the beams land, selling the speed.
+      roadMaterial.color.copy(current.road).lerp(current.sun, current.headlight * 0.06);
 
       // Landscape tinting.
       groundMaterial.color.copy(current.ground);

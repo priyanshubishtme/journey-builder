@@ -152,7 +152,7 @@ export function Hero() {
           style={{ y: ticketY, rotate: ticketRotate }}
           className="mx-auto w-full max-w-2xl"
         >
-          <div className="relative overflow-hidden rounded-[5px] border border-[#c9863f]/40 bg-card shadow-[0_34px_80px_-54px_rgba(43,26,42,0.95)]">
+          <div className="relative overflow-hidden rounded-[5px] border border-[#c9863f]/45 bg-card shadow-[0_34px_80px_-54px_rgba(43,26,42,0.95),inset_0_1px_0_rgba(255,244,224,0.85)]">
             {/* Sunset wash + fine grid, so the paper reads as printed stock. */}
             <div
               aria-hidden="true"
@@ -174,7 +174,7 @@ export function Hero() {
             <div className="relative flex items-stretch">
               {/* Main body */}
               <div className="flex-1 px-5 py-5 text-left sm:px-7 sm:py-6">
-                <div className="flex items-center gap-2 text-[13px] font-medium text-[#b5561f]">
+                <div className="flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.08em] text-[#b5561f]">
                   <Ticket className="size-4" strokeWidth={1.7} aria-hidden="true" />
                   Journey pass
                 </div>
@@ -184,7 +184,7 @@ export function Hero() {
                 </p>
 
                 <div className="mt-4 flex items-center gap-3">
-                  <span className="text-[13px] font-medium text-[#6b4a52]">Rudrapur</span>
+                  <span className="text-[13px] font-medium uppercase tracking-[0.06em] text-[#6b4a52]">Rudrapur</span>
                   <span
                     aria-hidden="true"
                     className="h-px flex-1"
