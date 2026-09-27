@@ -85,7 +85,7 @@ export function Hero() {
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-6xl flex-col justify-between gap-8 px-5 pt-24 pb-8 sm:px-8 sm:pt-28 sm:pb-12">
         {/* Status line — the only top-row content, and readable. */}
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2.5 text-[13px] font-medium text-[#7d3b26]">
+          <span className="inline-flex items-center gap-2.5 text-[13px] font-medium tracking-[0.06em] uppercase text-[#7d3b26]">
             <span aria-hidden="true" className="relative flex size-2">
               <span className="absolute inline-flex size-2 animate-ping rounded-full bg-[#e8564a]/60" />
               <span className="relative inline-flex size-2 rounded-full bg-[#e8564a]" />
@@ -94,9 +94,9 @@ export function Hero() {
           </span>
           <motion.span
             style={{ opacity: cueOpacity }}
-            className="text-[13px] tracking-[0.02em] text-[#8d4a33]"
+            className="text-[13px] tracking-[0.06em] uppercase text-[#8d4a33]"
           >
-            Scroll
+            Scroll to begin
           </motion.span>
         </div>
 
@@ -137,10 +137,10 @@ export function Hero() {
             </motion.div>
 
             <div className="flex flex-col items-center gap-4">
-              <h1 className="font-display text-[2.15rem] leading-[1.05] tracking-[-0.03em] text-balance text-[#3a2130] sm:text-6xl md:text-7xl">
+              <h1 className="font-display text-[2.25rem] leading-[1.05] tracking-[-0.03em] text-balance text-[#3a2130] sm:text-6xl md:text-7xl">
                 {profile.headline}
               </h1>
-              <p className="max-w-xl text-pretty text-[15px] leading-7 text-[#6b4a52] sm:text-lg sm:leading-8">
+              <p className="max-w-xl text-pretty text-[15px] leading-7 text-[#6b4a52] sm:text-[17px] sm:leading-8">
                 {profile.tagline}
               </p>
             </div>

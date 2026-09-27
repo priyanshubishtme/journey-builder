@@ -25,28 +25,28 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <a
           href="#top"
-          className="flex items-center gap-2.5 text-[14px] font-medium tracking-[0.04em] text-foreground"
+          className="flex items-center gap-2.5 text-[14px] font-medium tracking-[0.06em] uppercase text-foreground"
         >
           <span
             aria-hidden="true"
-            className="size-2.5 rounded-full"
-            style={{ backgroundImage: "linear-gradient(135deg, #ffc46b, #f0703a 60%, #d4466e)" }}
+            className="relative flex size-2.5 overflow-hidden rounded-full border border-[#b5714a]/40"
+            style={{ backgroundImage: "linear-gradient(126deg, #ffd07a, #f0703a 52%, #d4466e)" }}
           />
-          {profile.brand}
+          <span className="font-display tracking-[0.14em]">{profile.brand}</span>
         </a>
         <nav className="flex items-center gap-6 sm:gap-8">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="hidden text-[14px] text-muted-foreground transition-colors hover:text-primary sm:block"
+              className="hidden text-[13px] font-medium tracking-[0.06em] uppercase text-muted-foreground transition-colors hover:text-foreground sm:block"
             >
               {link.label}
             </a>
           ))}
           <a
             href={`mailto:${profile.email}`}
-            className="text-[14px] font-medium text-primary underline decoration-[#e8a06a] decoration-1 underline-offset-4 transition-colors hover:decoration-primary"
+            className="text-[13px] font-medium tracking-[0.06em] uppercase text-primary border-b border-[#e8a06a]/50 border-transparent hover:border-primary/50 underline-offset-4 transition-all hover:no-underline"
           >
             Email
           </a>

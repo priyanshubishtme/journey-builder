@@ -127,11 +127,22 @@
   --color-amber: oklch(0.78 0.135 72);
   --color-rose: oklch(0.58 0.19 5);
   --color-plum: oklch(0.42 0.14 310);
+  --color-paper-2: oklch(0.97 0.014 78);
+  --color-rule: oklch(0.86 0.03 70);
+  --color-rule-strong: oklch(0.74 0.045 62);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Editorial micro-typography so small labels never feel like UI chrome. */
+  h1, h2, h3, h4 {
+    font-feature-settings: "kern", "liga", "calt", "kern", "liga", "ss01";
+  }
+  /* Tame oversized screen rendering for the display serif. */
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
   }
   html {
     scroll-behavior: smooth;
@@ -161,10 +172,10 @@
 @layer components {
   /* Readable type scale — nothing below 13px, nothing shouty in caps. */
   .eyebrow {
-    @apply text-[13px] font-medium tracking-[0.01em] text-primary;
+    @apply text-[13px] font-medium tracking-[0.02em] text-primary uppercase;
   }
   .meta {
-    @apply text-[13px] tracking-[0.01em] text-muted-foreground;
+    @apply text-[13px] tracking-[0.03em] text-muted-foreground text-uppercase;
   }
   .counter {
     @apply font-mono text-[13px] tabular-nums text-muted-foreground;
