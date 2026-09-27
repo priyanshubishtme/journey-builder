@@ -1,19 +1,11 @@
 import * as THREE from "three";
 
-/**
- * Warm sunset palette shared by the CSS theme and every 3D scene.
- *
- * The journey runs from a golden morning to a violet dusk; `createSkySampler`
- * interpolates the whole atmosphere (sky, sun, lights, fog, foliage, lamp
- * glow, stars, headlights, bloom) from a single scroll progress value.
- */
-
+/** Shared keys for the warm-to-dusk sky this portfolio is built around. */
 export const SUNSET = {
   cream: "#fff6ea",
   gold: "#ffc46b",
   amber: "#ff9f45",
   orange: "#f0703a",
-  coral: "#e8564a",
   rose: "#d4466e",
   magenta: "#ab3f7c",
   plum: "#6d3a7b",
@@ -25,6 +17,12 @@ export const SUNSET = {
   russet: "#8d4a33",
   olive: "#7c7b45",
   pine: "#3f5a45",
+  indigo: "#4a4080",
+  brass: "#c9863f",
+  warm: "#ff7a2c",
+  clay: "#e35a3a",
+  mauve: "#cf4a78",
+  paper: "#f7efe6",
 } as const;
 
 type SkyKeyframe = {
@@ -51,6 +49,8 @@ type SkyKeyframe = {
   lamp: number;
   stars: number;
   headlight: number;
+  windows: string;
+  marker: string;
   bloom: number;
 };
 
@@ -58,90 +58,96 @@ type SkyKeyframe = {
 const KEYFRAMES: SkyKeyframe[] = [
   {
     t: 0,
-    zenith: "#ffdca6",
-    mid: "#ffc286",
-    horizon: "#ffa462",
-    sun: "#ffe8bb",
-    keyColor: "#ffdda8",
-    sunHeight: 0.46,
+    zenith: "#c9daea",
+    mid: "#e2b6a3",
+    horizon: "#f5cf9a",
+    sun: "#ffe9c4",
+    keyColor: "#ffd9a8",
+    sunHeight: 0.48,
     sunOpacity: 1,
-    key: 1.25,
-    ambient: 0.46,
-    hemiSky: "#ffdcb2",
-    hemiGround: "#a97a4c",
-    fog: "#f7b681",
-    ground: "#d9b47e",
-    foliage: "#77883f",
-    ridgeNear: "#9c6440",
-    ridgeMid: "#b87f58",
-    ridgeFar: "#d2a077",
-    road: "#a98d74",
-    rail: "#fff0d6",
-    lamp: 0.05,
+    key: 1.3,
+    ambient: 0.5,
+    hemiSky: "#dfe6f2",
+    hemiGround: "#b0896a",
+    fog: "#f3d9b8",
+    ground: "#c9b18a",
+    foliage: "#7f8a4d",
+    ridgeNear: "#b08258",
+    ridgeMid: "#d7a877",
+    ridgeFar: "#e6cdb4",
+    road: "#b39c7e",
+    rail: "#ffe7c6",
+    lamp: 0.06,
     stars: 0,
-    headlight: 0.3,
-    bloom: 0.55,
+    headlight: 0.32,
+    windows: "#ffd99a",
+    marker: "#ffd99a",
+    bloom: 0.5,
   },
   {
-    t: 0.42,
-    zenith: "#ffcf96",
-    mid: "#ffab73",
-    horizon: "#ff8a5c",
-    sun: "#ffc484",
-    keyColor: "#ffc085",
-    sunHeight: 0.22,
+    t: 0.45,
+    zenith: "#ffcba4",
+    mid: "#ff9c6a",
+    horizon: "#ff7b46",
+    sun: "#ffd98a",
+    keyColor: "#ffb87a",
+    sunHeight: 0.16,
     sunOpacity: 1,
     key: 1.15,
     ambient: 0.44,
-    hemiSky: "#ffcb9e",
-    hemiGround: "#8a5a3c",
-    fog: "#eb9a6a",
-    ground: "#c99f74",
-    foliage: "#5f6c37",
-    ridgeNear: "#7c4a39",
-    ridgeMid: "#96574a",
-    ridgeFar: "#b0756a",
-    road: "#93786a",
-    rail: "#ffe7c8",
-    lamp: 0.35,
+    hemiSky: "#ffc794",
+    hemiGround: "#8c5a3c",
+    fog: "#e08f5e",
+    ground: "#b8946d",
+    foliage: "#5f6c36",
+    ridgeNear: "#8c5a44",
+    ridgeMid: "#a86a58",
+    ridgeFar: "#c79286",
+    road: "#9c8470",
+    rail: "#ffd9a8",
+    lamp: 0.32,
     stars: 0.06,
     headlight: 0.6,
-    bloom: 0.75,
+    windows: "#ffe6b8",
+    marker: "#ffd99a",
+    bloom: 0.72,
   },
   {
-    t: 0.74,
-    zenith: "#d9636d",
-    mid: "#bf4368",
-    horizon: "#f2794c",
-    sun: "#ff9a58",
-    keyColor: "#ff9a63",
+    t: 0.78,
+    zenith: "#9c4a6a",
+    mid: "#bf5070",
+    horizon: "#f28a4e",
+    sun: "#ffae66",
+    keyColor: "#ff9a58",
     sunHeight: 0.02,
     sunOpacity: 1,
     key: 0.85,
     ambient: 0.42,
-    hemiSky: "#d1646f",
-    hemiGround: "#5f3a45",
+    hemiSky: "#c06372",
+    hemiGround: "#5d3a48",
     fog: "#a85268",
-    ground: "#a6795f",
-    foliage: "#414a33",
+    ground: "#9d7862",
+    foliage: "#434a30",
     ridgeNear: "#5e3441",
     ridgeMid: "#6f3d4c",
-    ridgeFar: "#8b4f5d",
-    road: "#6f5a60",
+    ridgeFar: "#88505e",
+    road: "#725a64",
     rail: "#f3c5a6",
-    lamp: 0.85,
-    stars: 0.35,
+    lamp: 0.82,
+    stars: 0.34,
     headlight: 0.9,
+    windows: "#ffb975",
+    marker: "#ffae66",
     bloom: 1,
   },
   {
     t: 1,
-    zenith: "#241c4a",
-    mid: "#3b2a63",
-    horizon: "#6b4269",
-    sun: "#ff8a5c",
+    zenith: "#1f1a52",
+    mid: "#312a66",
+    horizon: "#6a426a",
+    sun: "#ff7a46",
     keyColor: "#8f6ba0",
-    sunHeight: -0.32,
+    sunHeight: -0.34,
     sunOpacity: 0,
     key: 0.26,
     ambient: 0.4,
@@ -158,7 +164,9 @@ const KEYFRAMES: SkyKeyframe[] = [
     lamp: 1,
     stars: 1,
     headlight: 1,
-    bloom: 0.85,
+    windows: "#ffb975",
+    marker: "#ff7a46",
+    bloom: 0.8,
   },
 ];
 
@@ -185,6 +193,8 @@ export type SkySample = {
   lamp: number;
   stars: number;
   headlight: number;
+  windows: THREE.Color;
+  marker: THREE.Color;
   bloom: number;
 };
 
@@ -217,11 +227,14 @@ const NUMBER_KEYS = [
   "bloom",
 ] as const;
 
+const COLOR_KEYS_AFTER = ["windows", "marker"] as const;
+
 /** Pre-allocated atmosphere sampler — safe to call every frame. */
 export function createSkySampler() {
   const sample = {} as SkySample;
   for (const key of COLOR_KEYS) sample[key] = new THREE.Color(KEYFRAMES[0][key]);
   for (const key of NUMBER_KEYS) sample[key] = KEYFRAMES[0][key];
+  for (const key of COLOR_KEYS_AFTER) sample[key] = new THREE.Color(KEYFRAMES[0][key]);
 
   const from = new THREE.Color();
   const to = new THREE.Color();
@@ -243,6 +256,11 @@ export function createSkySampler() {
       }
       for (const key of NUMBER_KEYS) {
         sample[key] = a[key] + (b[key] - a[key]) * local;
+      }
+      for (const key of COLOR_KEYS_AFTER) {
+        from.set(a[key]);
+        to.set(b[key]);
+        sample[key].copy(from).lerp(to, local);
       }
       return sample;
     },
